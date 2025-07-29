@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: otel-instrumentation-mcp
-          image: ghcr.io/liatrio-labs/otel-instrumentation-mcp:0.15.0
+          image: ghcr.io/liatrio-labs/otel-instrumentation-mcp:0.1.0
           env:
             - name: MCP_TRANSPORT
               value: "http"
@@ -25,19 +25,19 @@ spec:
               value: "otel-instrumentation-mcp"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otelcol-collector:4317"
-            # Example GITHUB APP Secrets
-            # - name: GITHUB_APP_ID
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: mcp-gh-app
-            #       key: MCP_GH_APP_ID
-            # - name: GITHUB_INSTALLATION_ID
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: mcp-gh-app
-            #       key: MCP_GH_APP_INST_ID
-            # - name: GITHUB_APP_PRIVATE_KEY_PATH
-            #   value: "/etc/app-key-volume/gh-app-private-key.pem"
+              # Example GITHUB APP Secrets
+              # - name: GITHUB_APP_ID
+              #   valueFrom:
+              #     secretKeyRef:
+              #       name: mcp-gh-app
+              #       key: MCP_GH_APP_ID
+              # - name: GITHUB_INSTALLATION_ID
+              #   valueFrom:
+              #     secretKeyRef:
+              #       name: mcp-gh-app
+              #       key: MCP_GH_APP_INST_ID
+              # - name: GITHUB_APP_PRIVATE_KEY_PATH
+              #   value: "/etc/app-key-volume/gh-app-private-key.pem"
           ports:
             - name: mcp-sse
               containerPort: 8080
