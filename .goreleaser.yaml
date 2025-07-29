@@ -1,0 +1,147 @@
+---
+# GoReleaser configuration for Python FastAPI service with Docker builds
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+# Pre-release hooks
+before:
+  hooks:
+    - echo "Building OpenTelemetry Instrumentation MCP Service"
+
+# Skip binary builds since this is a Python application
+builds:
+  - skip: true
+  # Choosing not to build the wheel distribution or sdist at this time.
+  # May revisit in the future.
+  # - id: "otel-instrumentation-mcp-wheel"
+  #   builder: uv
+  #   buildmode: wheel
+  #   tool: uv
+  #   command: build
+  # - id: "otel-instrumentation-mcp-sdist"
+  #   builder: uv
+  #   buildmode: sdist
+  #   tool: uv
+  #   command: build
+
+# Docker builds with multi-architecture support
+dockers:
+  - id: amd64
+    image_templates:
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Version }}-amd64"
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:latest-amd64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.name={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.description=OpenTelemetry Instrumentation MCP Service"
+      - "--label=org.opencontainers.image.licenses=MIT"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.vendor=Liatrio"
+    extra_files:
+      - pyproject.toml
+      - uv.lock
+      - README.md
+      - otel_instrumentation_mcp/
+  
+  - id: arm64
+    image_templates:
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Version }}-arm64"
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:latest-arm64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.name={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.description=OpenTelemetry Instrumentation MCP Service"
+      - "--label=org.opencontainers.image.licenses=MIT"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.vendor=Liatrio"
+    extra_files:
+      - pyproject.toml
+      - uv.lock
+      - README.md
+      - otel_instrumentation_mcp/
+
+# Multi-architecture Docker manifests
+docker_manifests:
+  - name_template: "ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Version }}-amd64"
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Version }}-arm64"
+  
+  - name_template: "ghcr.io/liatrio-labs/otel-instrumentation-mcp:latest"
+    image_templates:
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:latest-amd64"
+      - "ghcr.io/liatrio-labs/otel-instrumentation-mcp:latest-arm64"
+
+# Skip archives since we're only building Docker images
+archives:
+  - format: binary
+
+# Skip checksums for Docker-only builds
+checksum:
+  disable: true
+
+# Snapshot configuration for development builds
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+# Changelog configuration
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "^style:"
+      - "^refactor:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+
+# Release configuration
+release:
+  github:
+    owner: liatrio-labs
+    name: otel-instrumentation-mcp
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## OpenTelemetry Instrumentation MCP {{ .Tag }} ({{ .Date }})
+    
+    Welcome to this new release of OpenTelemetry Instrumentation MCP!
+  footer: |
+    ## Docker Images
+    
+    ```bash
+    docker pull ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Tag }}
+    ```
+    
+    **Full Changelog**: https://github.com/liatrio-labs/otel-instrumentation-mcp/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

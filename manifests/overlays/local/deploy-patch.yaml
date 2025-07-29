@@ -1,0 +1,10 @@
+---
+  - op: replace
+    path: /spec/template/spec/containers/0/image
+    value: otel-basic-registry:55166/otel-instrumentation-mcp:localdev
+
+  - op: add
+    path: /spec/template/spec/containers/0/env/3
+    value:
+      name: OTEL_EXPORTER_OTLP_INSECURE
+      value: "true"

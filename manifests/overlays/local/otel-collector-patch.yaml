@@ -1,0 +1,17 @@
+---
+  - op: replace
+    path: /spec/config/exporters/otlp/endpoint
+    value: "gateway-collector.collector.svc.cluster.local:4317"
+
+  - op: replace
+    path: /spec/config/extensions/health_check/endpoint
+    value: "${env:POD_IP}:13133"
+
+  - op: replace
+    path: /spec/config/receivers/otlp/protocols/grpc/endpoint
+    value: "${env:POD_IP}:4317"
+
+  - op: add
+    path: /spec/config/exporters/otlp/tls
+    value:
+      insecure: true

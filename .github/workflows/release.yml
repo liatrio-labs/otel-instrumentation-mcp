@@ -1,0 +1,103 @@
+---
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    if: ${{ github.ref == 'refs/heads/main' && github.actor == 'octo-sts[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    
+    steps:
+      - uses: octo-sts/action@210248e8ae1ae1550aa6e232c6f192b3ccbf7335
+        id: octo-sts
+        with:
+          scope: Liatrio-Labs/otel-instrumentation-mcp
+          identity: semantic-release
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.octo-sts.outputs.token }}
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6
+        with:
+          version: "0.8.0" # https://github.com/go-task/task
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+
+      - name: Get Number of Tags
+        id: tag_check
+        run: |
+          tag_count=$(git tag | wc -l | xargs) # Trim whitespace
+          if [[ $tag_count -gt 0 ]]; then
+            echo "initial_bump=false" >> $GITHUB_ENV
+          else
+            echo "initial_bump=minor" >> $GITHUB_ENV
+          fi
+
+      - name: Get changelog
+        id: get_changelog
+        uses: mathieudutour/github-tag-action@a22cf08638b34d5badda920f9daf6e72c477b07b # v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_release_rules: chore:patch:🧹 Chores,fix:patch:🐛 Bug Fixes,feat:minor:✨ Features
+          default_bump: ${{ env.initial_bump }}
+
+      - name: Fetch all tags
+        run: git fetch --force --tags
+
+      - name: Write changelog to file
+        run: echo "${{ steps.get_changelog.outputs.changelog }}" >> ../CHANGELOG.md
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6
+        with:
+          distribution: goreleaser-pro
+          version: latest
+          args: release --clean --release-notes ../CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+      - name: Attest Binary Build Provenance
+        id: attest-build-provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: ./dist/**
+
+      - name: Set Attestations Folder
+        run: echo "ATTESTATIONS_FOLDER=attestations" >> $GITHUB_ENV
+
+      - name: Rename Provenance Bundle
+        run: |
+          mkdir -p ${{ env.ATTESTATIONS_FOLDER }}
+          mv ${{ steps.attest-build-provenance.outputs.bundle-path }} ${{ env.ATTESTATIONS_FOLDER }}/attest-build-provenance-attestation.jsonl
+
+      - name: Upload Provenance Sigstore Bundle
+        id: upload-provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-build-provenance-attestation-high-perms
+          path: ${{ env.ATTESTATIONS_FOLDER }}/attest-build-provenance-attestation.jsonl
+          if-no-files-found: error

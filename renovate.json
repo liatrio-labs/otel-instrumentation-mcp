@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies", "renovatebot"],
+  "schedule": ["before 5am"],
+  "constraints": {
+    "python": ">=3.13"
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "dockerfile deps"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions deps",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["pep621"],
+      "matchUpdateTypes": ["major"],
+      "prBodyNotes": [
+        ":warning: MAJOR VERSION UPDATE :warning: - please manually update this package"
+      ],
+      "labels": ["dependency-major-update"]
+    },
+    {
+      "matchManagers": ["pep621"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "python minor and patch updates",
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchManagers": ["pre-commit"],
+      "groupName": "pre-commit hooks",
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ],
+  "prConcurrentLimit": 10,
+  "suppressNotifications": ["prEditedNotification"],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  }
+}

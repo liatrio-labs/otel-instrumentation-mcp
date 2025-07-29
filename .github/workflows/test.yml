@@ -1,0 +1,31 @@
+---
+name: Test Python
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6
+        with:
+          version: "0.8.0" # https://github.com/go-task/task
+      
+      - name: Install Task
+        uses: alexellis/arkade-get@master
+        with:
+          task: v3.44.0 # https://github.com/go-task/task
+
+      - name: Run tests
+        run: task test

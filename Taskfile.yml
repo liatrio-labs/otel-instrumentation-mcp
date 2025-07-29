@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+vars:
+  PYTHON_VERSION: ">=3.13"
+  SERVICE_NAME: "otel-instrumentation-mcp"
+
+env:
+  PYTHONPATH: "{{.ROOT_DIR}}"
+
+tasks:
+  default:
+    desc: Install dependencies and set up the project
+    deps: [install]
+
+  install:
+    desc: Install Python dependencies using uv
+    cmds:
+      - uv sync
+    sources:
+      - pyproject.toml
+      - uv.lock
+    generates:
+      - .venv/**/*
+    method: checksum
+
+  test:
+    desc: Run all tests with pytest
+    deps: [install]
+    cmds:
+      - uv run pytest
+    sources:
+      - otel_instrumentation_mcp/**/*.py
+      - tests/**/*.py
+
+  test-single:
+    desc: "Run a specific test (usage: task test-single -- tests/test_main.py::test_root_endpoint)"
+    deps: [install]
+    cmds:
+      - uv run pytest {{.CLI_ARGS}}
+
+  lint:
+    desc: Run Python Black formatter directly through uv
+    deps: [install]
+    cmds:
+      - uv run black otel_instrumentation_mcp/ tests/
+    sources:
+      - otel_instrumentation_mcp/**/*.py
+      - tests/**/*.py
+
+  format:
+    desc: Format code using pre-commit hooks
+    aliases: [fmt]
+    deps: [install]
+    cmds:
+      - uv run pre-commit run --all-files
+
+  dev:
+    desc: Start development server with hot reload
+    deps: [install]
+    cmds:
+      - uv run uvicorn otel_instrumentation_mcp.main:app --reload --host 0.0.0.0 --port ${SERVICE_PORT:-8080}
+    interactive: true
+
+  run:
+    desc: Start production server
+    deps: [install]
+    cmds:
+      - uv run otel-instrumentation-mcp
+    interactive: true
+
+  checks:
+    desc: Run all validation checks (test, lint)
+    deps: [test, lint]
+    cmds:
+      - |
+        if [ -n "$(git diff --name-only)" ]; then
+          echo "Some files have changed. Please commit them."
+          exit 1
+        else
+          echo "All checks completed successfully."
+        fi
+
+  build:
+    desc: Build Docker image
+    deps: [install, test, lint]
+    cmds:
+      - echo "✅ Dependencies installed"
+      - echo "✅ Tests passed"
+      - echo "✅ Code formatted with Black"
+      - echo "🚀 Service ready for deployment"
+      - echo "🧱 Building container image"
+      - docker build . -t {{.SERVICE_NAME}}:localdev
+    sources:
+      - Dockerfile
+      - otel_instrumentation_mcp/**/*.py
+      - pyproject.toml
+      - uv.lock
+
+  tilt:
+    desc: Set up local development cluster with Tilt
+    cmds:
+      - |
+        mkdir -p ./kube
+        echo "Looking for otel-basic cluster..."
+        cluster=$(k3d cluster ls --no-headers otel-basic 2> /dev/null | awk '{print $1}')
+        if [[ "$cluster" && $cluster = "otel-basic" ]]; then
+          echo "otel-basic cluster present"
+          k3d kubeconfig merge -s otel-basic -o .kube/k3dconfig --overwrite
+        else
+          echo "Creating otel-basic cluster..."
+          k3d cluster create otel-basic --registry-create otel-basic-registry:localhost:55166 1> /dev/null
+          k3d kubeconfig merge -s otel-basic -o .kube/k3dconfig --overwrite
+        fi
+        kubectl config use-context k3d-otel-basic
+        tilt up
+    interactive: true
+
+  clean:
+    desc: Clean Python artifacts and caches
+    cmds:
+      - rm -rf .pytest_cache
+      - rm -rf __pycache__
+      - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type f -name "*.pyc" -delete
+      - rm -rf .task
+
+  setup:
+    desc: Initial project setup (install pre-commit hooks)
+    deps: [install]
+    cmds:
+      - uv run pre-commit install
+    run: once
+
+  perf:
+    desc: Run performance tests with k6
+    cmds:
+      - k6 run -e ENVIRONMENT={{.ENV | default "local"}} k6-perf-test.js
+
+  perf-dev:
+    desc: Run performance tests against dev environment
+    cmds:
+      - task: perf
+        vars: { ENV: "dev" }
+
+  perf-prod:
+    desc: Run performance tests against prod environment
+    cmds:
+      - task: perf
+        vars: { ENV: "prod" }

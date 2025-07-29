@@ -1,0 +1,18 @@
+---
+name: PR Linter
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+  triage:
+    uses: liatrio/tag-o11y-github-actions/.github/workflows/pr-conventional.yaml@d98007814bbddd380d9aa0ae1e71dcd13dce0af3 # v0.4.16 
+    secrets: inherit

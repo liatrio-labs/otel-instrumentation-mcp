@@ -1,0 +1,76 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otelcol
+spec:
+  image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.130.1
+  mode: deployment
+  env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+  
+  config:
+    extensions:
+      health_check:
+        endpoint: "[${env:POD_IP}]:13133"
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "[${env:POD_IP}]:4317"
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+
+      batch:
+        send_batch_size: 100
+        timeout: 10s
+
+    exporters:
+      debug:
+        verbosity: basic
+
+      otlp:
+        endpoint: gateway-v2-collector.gateway-v2:4317
+        tls:
+          insecure: true
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        traces:
+          receivers: 
+            - otlp
+          processors:
+            - batch
+            - memory_limiter
+          exporters: 
+            - debug
+            - otlp
+        metrics:
+          receivers:
+            - otlp
+          processors:
+            - batch
+            - memory_limiter
+          exporters:
+            - debug
+            - otlp
+        logs:
+          receivers: 
+            - otlp
+          processors:
+            - batch
+            - memory_limiter
+          exporters: 
+            - debug
+            - otlp
+

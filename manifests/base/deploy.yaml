@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-instrumentation-mcp
+  labels:
+    app: otel-instrumentation-mcp
+spec:
+  selector:
+    matchLabels:
+      app: otel-instrumentation-mcp
+  template:
+    metadata:
+      labels:
+        app: otel-instrumentation-mcp
+    spec:
+      containers:
+        - name: otel-instrumentation-mcp
+          image: ghcr.io/liatrio-labs/otel-instrumentation-mcp:0.15.0
+          env:
+            - name: MCP_TRANSPORT
+              value: "http"
+            - name: MCP_PORT
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "otel-instrumentation-mcp"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otelcol-collector:4317"
+            # Example GITHUB APP Secrets
+            # - name: GITHUB_APP_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: mcp-gh-app
+            #       key: MCP_GH_APP_ID
+            # - name: GITHUB_INSTALLATION_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: mcp-gh-app
+            #       key: MCP_GH_APP_INST_ID
+            # - name: GITHUB_APP_PRIVATE_KEY_PATH
+            #   value: "/etc/app-key-volume/gh-app-private-key.pem"
+          ports:
+            - name: mcp-sse
+              containerPort: 8080
+          # Example volume mount for secret key
+          # volumeMounts:
+          #   - name: app-key-volume
+          #     mountPath: /etc/app-key-volume
+          #     readOnly: true
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+      # Example Volumes for GitHub secrets
+      # volumes:
+      #   - name: app-key-volume
+      #     secret:
+      #       secretName: mcp-gh-app
+      #       items:
+      #         - key: MCP_GH_SECRET_KEY
+      #           path: gh-app-private-key.pem

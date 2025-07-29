@@ -1,0 +1,6 @@
+# Learn about CODEOWNERS file format:
+#  https://help.github.com/en/articles/about-code-owners
+
+# Default owners for everything in the repo
+#
+* @liatrio-labs-maintainers

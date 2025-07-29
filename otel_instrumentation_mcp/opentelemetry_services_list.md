@@ -1,0 +1,17 @@
+| Service                                                                                                 | Language      |
+| ------------------------------------------------------------------------------------------------------- | ------------- |
+| [accounting](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/accounting)             | .NET          |
+| [ad](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/ad)                             | Java          |
+| [cart](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/cart)                         | .NET          |
+| [checkout](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/checkout)                 | Go            |
+| [currency](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/currency)                 | C++           |
+| [email](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/email)                       | Ruby          |
+| [fraud-detection](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/fraud-detection)   | Kotlin        |
+| [frontend](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/frontend)                 | TypeScript    |
+| [load-generator](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/load-generator)     | Python/Locust |
+| [payment](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/payment)                   | JavaScript    |
+| [product-catalog](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/product-catalog)   | Go            |
+| [quote](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/quote)                       | PHP           |
+| [recommendation](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/recommendation)     | Python        |
+| [shipping](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/shipping)                 | Rust          |
+| [react-native-app](https://github.com/open-telemetry/opentelemetry-demo/tree/main/src/react-native-app) | TypeScript    |
