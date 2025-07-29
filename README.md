@@ -1,20 +1,17 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/liatrio/otel-instrumentation-mcp/actions/workflows/build.yml?query=branch%3Amain">
-    <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/liatrio/otel-instrumentation-mcp/build.yml?branch=main&style=for-the-badge">
+  <a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/actions/workflows/build.yml?query=branch%3Amain">
+    <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/liatrio-labs/otel-instrumentation-mcp/build.yml?branch=main&style=for-the-badge">
   </a>
-  <a href="https://goreportcard.com/report/github.com/liatrio/otel-instrumentation-mcp">
-    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/liatrio/otel-instrumentation-mcp?style=for-the-badge">
+  <a href="https://codecov.io/gh/liatrio-labs/otel-instrumentation-mcp/branch/main" >
+    <img alt="Codecov Status" src="https://img.shields.io/codecov/c/github/liatrio-labs/otel-instrumentation-mcp?style=for-the-badge"/>
   </a>
-  <a href="https://codecov.io/gh/liatrio/otel-instrumentation-mcp/branch/main" >
-    <img alt="Codecov Status" src="https://img.shields.io/codecov/c/github/liatrio/otel-instrumentation-mcp?style=for-the-badge"/>
+  <a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/releases">
+    <img alt="GitHub release" src="https://img.shields.io/github/v/release/liatrio-labs/otel-instrumentation-mcp?include_prereleases&style=for-the-badge">
   </a>
-  <a href="https://github.com/liatrio/otel-instrumentation-mcp/releases">
-    <img alt="GitHub release" src="https://img.shields.io/github/v/release/liatrio/otel-instrumentation-mcp?include_prereleases&style=for-the-badge">
-  </a>
-  <a href="https://api.securityscorecards.dev/projects/github.com/liatrio/otel-instrumentation-mcp/badge">
-    <img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/liatrio/otel-instrumentation-mcp?label=openssf%20scorecard&style=for-the-badge">
+  <a href="https://api.securityscorecards.dev/projects/github.com/liatrio-labs/otel-instrumentation-mcp/badge">
+    <img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/liatrio-labs/otel-instrumentation-mcp?label=openssf%20scorecard&style=for-the-badge">
   </a>
 </p>
 
