@@ -38,7 +38,7 @@ jobs:
       - name: Check License Headers
         run: |
           task addlicense
-          if ! git diff --quiet; then
+          if ! git diff --quiet -- . ':!uv.lock'; then
             echo "Files are outdated. Changes detected."
             echo "Please run 'task addlicense' and 'task lint' locally and commit the changes."
             exit 1
