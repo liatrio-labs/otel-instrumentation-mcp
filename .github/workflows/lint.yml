@@ -27,5 +27,19 @@ jobs:
         with:
           task: v3.44.0 # https://github.com/go-task/task
 
+      - name: Set up Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5
+        with:
+          go-version: '1.24'
+
       - name: Run linting
         run: task lint
+
+      - name: Check License Headers
+        run: |
+          task addlicense
+          if ! git diff --quiet; then
+            echo "License headers are missing or outdated. Changes detected."
+            echo "Please run 'task addlicense' locally and commit the changes."
+            exit 1
+          fi

@@ -61,7 +61,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 2
+            timeoutSeconds: 5
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -70,7 +70,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 2
+            timeoutSeconds: 5
       # Example Volumes for GitHub secrets
       # volumes:
       #   - name: app-key-volume
