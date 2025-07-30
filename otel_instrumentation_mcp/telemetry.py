@@ -74,13 +74,6 @@ class TelemetryConfig:
                 "process.executable.name": "python",
                 # Host attributes (if available)
                 "host.name": os.getenv("HOSTNAME", "localhost"),
-                # Container attributes (if running in container)
-                "container.name": os.getenv("CONTAINER_NAME"),
-                "container.id": os.getenv("CONTAINER_ID"),
-                # Kubernetes attributes (if running in k8s)
-                "k8s.pod.name": os.getenv("POD_NAME"),
-                "k8s.namespace.name": os.getenv("POD_NAMESPACE"),
-                "k8s.deployment.name": os.getenv("DEPLOYMENT_NAME"),
             }
         )
 
