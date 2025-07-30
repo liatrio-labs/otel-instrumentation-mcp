@@ -46,6 +46,13 @@ spec:
           #   - name: app-key-volume
           #     mountPath: /etc/app-key-volume
           #     readOnly: true
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "0.05"
+            limits:
+              memory: "300Mi"
+              cpu: "0.1"
           readinessProbe:
             failureThreshold: 3
             httpGet:

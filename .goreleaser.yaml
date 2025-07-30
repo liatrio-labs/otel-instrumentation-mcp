@@ -136,7 +136,7 @@ release:
     ## Docker Images
     
     ```bash
-    docker pull ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Tag }}
+    docker pull ghcr.io/liatrio-labs/otel-instrumentation-mcp:{{ .Version }}
     ```
     
     **Full Changelog**: https://github.com/liatrio-labs/otel-instrumentation-mcp/compare/{{ .PreviousTag }}...{{ .Tag }}
