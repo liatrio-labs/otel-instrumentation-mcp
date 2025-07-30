@@ -33,4 +33,4 @@ USER appuser
 EXPOSE 8080
 
 # Run the MCP server using the entry point script
-CMD [".venv/bin/otel-mcp"]
+CMD [".venv/bin/otel-instrumentation-mcp"]

@@ -64,7 +64,7 @@ jobs:
       - uses: octo-sts/action@210248e8ae1ae1550aa6e232c6f192b3ccbf7335
         id: octo-sts
         with:
-          scope: "Liatrio-Labs/otel-instrumentation-mcp"
+          scope: "liatrio-labs/otel-instrumentation-mcp"
           identity: semantic-release
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
