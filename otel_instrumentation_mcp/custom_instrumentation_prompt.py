@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def custom_instrumentation_prompt(code_snippet: str) -> str:
     """Generates a detailed prompt message requesting code analysis and instrumentation
     with OpenTelemetry tracing best practices, suitable for an LLM.

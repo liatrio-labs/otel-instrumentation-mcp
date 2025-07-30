@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def instrumentation_score_analysis_prompt(
     telemetry_data: str = "", service_name: str = "", focus_areas: str = ""
 ) -> str:

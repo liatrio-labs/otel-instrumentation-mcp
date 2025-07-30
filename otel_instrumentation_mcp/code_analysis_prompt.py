@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def ask_about_code(code_snippet: str) -> str:
     """Generates a prompt message requesting code analysis and relevant OpenTelemetry documentation.
 
