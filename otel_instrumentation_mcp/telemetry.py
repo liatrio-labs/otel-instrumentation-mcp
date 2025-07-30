@@ -1,3 +1,17 @@
+# Copyright 2025 Liatrio
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """OpenTelemetry telemetry configuration and utilities."""
 
 import logging
@@ -60,13 +74,6 @@ class TelemetryConfig:
                 "process.executable.name": "python",
                 # Host attributes (if available)
                 "host.name": os.getenv("HOSTNAME", "localhost"),
-                # Container attributes (if running in container)
-                "container.name": os.getenv("CONTAINER_NAME"),
-                "container.id": os.getenv("CONTAINER_ID"),
-                # Kubernetes attributes (if running in k8s)
-                "k8s.pod.name": os.getenv("POD_NAME"),
-                "k8s.namespace.name": os.getenv("POD_NAMESPACE"),
-                "k8s.deployment.name": os.getenv("DEPLOYMENT_NAME"),
             }
         )
 

@@ -48,11 +48,11 @@ spec:
           #     readOnly: true
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "0.05"
+              memory: "400Mi"
+              cpu: "0.5"
             limits:
-              memory: "300Mi"
-              cpu: "0.1"
+              memory: "500Mi"
+              cpu: "1"
           readinessProbe:
             failureThreshold: 3
             httpGet:
@@ -61,7 +61,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 2
+            timeoutSeconds: 5
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -70,7 +70,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 2
+            timeoutSeconds: 5
       # Example Volumes for GitHub secrets
       # volumes:
       #   - name: app-key-volume

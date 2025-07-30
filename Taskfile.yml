@@ -125,6 +125,15 @@ tasks:
       - find . -type f -name "*.pyc" -delete
       - rm -rf .task
 
+  addlicense:
+    desc: Add Apache 2.0 license headers to Python files
+    cmds:
+      - go install github.com/google/addlicense@latest
+      - addlicense -c "Liatrio" -l apache otel_instrumentation_mcp/ tests/
+    sources:
+      - otel_instrumentation_mcp/**/*.py
+      - tests/**/*.py
+
   setup:
     desc: Initial project setup (install pre-commit hooks)
     deps: [install]
