@@ -14,5 +14,8 @@ permissions:
 
 jobs:
   triage:
-    uses: liatrio/tag-o11y-github-actions/.github/workflows/pr-conventional.yaml@d98007814bbddd380d9aa0ae1e71dcd13dce0af3 # v0.4.16 
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

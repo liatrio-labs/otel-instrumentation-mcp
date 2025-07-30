@@ -10,8 +10,8 @@
   <a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/releases">
     <img alt="GitHub release" src="https://img.shields.io/github/v/release/liatrio-labs/otel-instrumentation-mcp?include_prereleases&style=for-the-badge">
   </a>
-  <a href="https://api.securityscorecards.dev/projects/github.com/liatrio-labs/otel-instrumentation-mcp/badge">
-    <img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/liatrio-labs/otel-instrumentation-mcp?label=openssf%20scorecard&style=for-the-badge">
+  <a href="https://api.securityscorecards.dev/projects/github.com/Liatrio-Labs/otel-instrumentation-mcp/badge">
+    <img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/Liatrio-Labs/otel-instrumentation-mcp?label=openssf%20scorecard&style=for-the-badge">
   </a>
 </p>
 
