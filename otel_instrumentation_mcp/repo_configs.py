@@ -83,10 +83,4 @@ def get_repo_config(repo_key: str) -> Dict[str, Any]:
     return REPO_CONFIGS[repo_key].copy()
 
 
-def list_repo_configs() -> Dict[str, str]:
-    """List all available repository configurations.
 
-    Returns:
-        Dictionary mapping repo keys to descriptions
-    """
-    return {key: config["description"] for key, config in REPO_CONFIGS.items()}

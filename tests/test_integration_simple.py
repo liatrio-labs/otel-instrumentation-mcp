@@ -24,16 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 def test_repo_configs():
     """Test repository configurations can be loaded."""
     try:
-        from otel_instrumentation_mcp.repo_configs import (
-            get_repo_config,
-            list_repo_configs,
-        )
-
-        # Test listing configs
-        configs = list_repo_configs()
-        assert isinstance(configs, dict)
-        assert len(configs) > 0
-        assert "opentelemetry-docs" in configs
+        from otel_instrumentation_mcp.repo_configs import get_repo_config
 
         # Test getting specific config
         otel_config = get_repo_config("opentelemetry-docs")
