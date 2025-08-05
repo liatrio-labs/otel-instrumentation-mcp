@@ -49,7 +49,10 @@ from otel_instrumentation_mcp.opentelemetry_examples import (
     get_demo_services_doc,
     get_demo_services_by_language,
 )
-from otel_instrumentation_mcp.opentelemetry_docs import get_docs_by_language
+from otel_instrumentation_mcp.opentelemetry_docs import (
+    get_docs_by_language,
+    get_docs_by_language_versioned,
+)
 from otel_instrumentation_mcp.semantic_conventions import (
     get_semantic_conventions as fetch_semantic_conventions,
 )
@@ -1130,13 +1133,16 @@ async def get_opentelemetry_examples_by_language_http(language: str = "python"):
 
 
 @mcp.tool
-async def get_opentelemetry_docs_by_language(language: str = "python"):
-    """Get OpenTelemetry documentation by language
+async def get_opentelemetry_docs_by_language(
+    language: str = "python", version: str = None
+):
+    """Get OpenTelemetry documentation by language and version
 
-    Returns OpenTelemetry documentation for a specific programming language
+    Returns OpenTelemetry documentation for a specific programming language and version
 
     Args:
         language: Programming language (e.g. python, java, go)
+        version: Version to retrieve (e.g. "v1.2.3", "latest", or None for latest)
     """
     session_id = extract_session_id_from_request()
     with create_root_span_context(
@@ -1154,10 +1160,15 @@ async def get_opentelemetry_docs_by_language(language: str = "python"):
             )
 
             logger.info(
-                "Fetching documentation by language", extra={"language": language}
+                "Fetching documentation by language and version",
+                extra={"language": language, "version": version},
             )
 
-            docs = get_docs_by_language(language)
+            # Use versioned function if version is specified, otherwise use original
+            if version:
+                docs = await get_docs_by_language_versioned(language, version)
+            else:
+                docs = get_docs_by_language(language)
 
             add_span_attributes(
                 span,
@@ -1357,9 +1368,11 @@ async def get_semantic_conventions(category: str = None, count: int = 50):
 
 
 @app.get("/otel-docs")
-async def get_opentelemetry_docs_by_language_http(language: str = "python"):
-    """HTTP endpoint for getting OpenTelemetry documentation by language"""
-    result = await get_opentelemetry_docs_by_language(language)
+async def get_opentelemetry_docs_by_language_http(
+    language: str = "python", version: str = None
+):
+    """HTTP endpoint for getting OpenTelemetry documentation by language and version"""
+    result = await get_opentelemetry_docs_by_language(language, version)
     return result
 
 

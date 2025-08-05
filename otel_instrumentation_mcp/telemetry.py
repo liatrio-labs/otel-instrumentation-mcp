@@ -732,6 +732,32 @@ class GenAiAttributes:
     GEN_AI_USAGE_TOTAL_TOKENS = "gen_ai.usage.total_tokens"
 
 
+# VCS semantic conventions following OpenTelemetry specification
+# Based on official OpenTelemetry VCS semantic conventions:
+# https://opentelemetry.io/docs/specs/semconv/registry/attributes/vcs/
+class VCSAttributes:
+    """VCS span attributes following OpenTelemetry semantic conventions."""
+
+    # Repository identification
+    VCS_REPOSITORY_NAME = "vcs.repository.name"
+    VCS_REPOSITORY_URL_FULL = "vcs.repository.url.full"
+    VCS_PROVIDER_NAME = "vcs.provider.name"
+    VCS_OWNER_NAME = "vcs.owner.name"
+
+    # Reference information (head = current, base = starting point)
+    VCS_REF_HEAD_NAME = "vcs.ref.head.name"
+    VCS_REF_HEAD_REVISION = "vcs.ref.head.revision"
+    VCS_REF_HEAD_TYPE = "vcs.ref.head.type"
+    VCS_REF_BASE_NAME = "vcs.ref.base.name"
+    VCS_REF_BASE_REVISION = "vcs.ref.base.revision"
+    VCS_REF_BASE_TYPE = "vcs.ref.base.type"
+
+    # Change/PR information
+    VCS_CHANGE_ID = "vcs.change.id"
+    VCS_CHANGE_TITLE = "vcs.change.title"
+    VCS_CHANGE_STATE = "vcs.change.state"
+
+
 def extract_session_id_from_request() -> Optional[str]:
     """Extract session ID from current HTTP request context.
 
