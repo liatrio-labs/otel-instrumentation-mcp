@@ -763,7 +763,3 @@ def extract_session_id_from_request() -> Optional[str]:
         if transport == "stdio":
             return f"stdio-{os.getpid()}"
         return None
-
-
-# Removed create_session_aware_root_span_context - replaced with direct session extraction
-# in MCP tools for better control and clarity
