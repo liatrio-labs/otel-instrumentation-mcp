@@ -49,10 +49,7 @@ from otel_instrumentation_mcp.opentelemetry_examples import (
     get_demo_services_doc,
     get_demo_services_by_language,
 )
-from otel_instrumentation_mcp.opentelemetry_docs import (
-    get_docs_by_language,
-    get_docs_by_language_versioned,
-)
+from otel_instrumentation_mcp.opentelemetry_docs import get_docs_by_language
 from otel_instrumentation_mcp.semantic_conventions import (
     get_semantic_conventions as fetch_semantic_conventions,
 )
@@ -1164,11 +1161,8 @@ async def get_opentelemetry_docs_by_language(
                 extra={"language": language, "version": version},
             )
 
-            # Use versioned function if version is specified, otherwise use original
-            if version:
-                docs = await get_docs_by_language_versioned(language, version)
-            else:
-                docs = get_docs_by_language(language)
+            # Use unified function with optional version parameter
+            docs = await get_docs_by_language(language, version)
 
             add_span_attributes(
                 span,
