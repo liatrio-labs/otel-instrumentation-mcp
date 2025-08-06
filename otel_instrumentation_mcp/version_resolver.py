@@ -22,7 +22,7 @@ supporting semantic versioning, caching, and comprehensive telemetry.
 import os
 import re
 import time
-import asyncio
+
 import requests
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
