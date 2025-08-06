@@ -14,36 +14,73 @@
 
 import requests
 import re
+from typing import Optional
 from markdown import markdown
 from bs4 import BeautifulSoup
 from opentelemetry.semconv.trace import SpanAttributes
 
 from .telemetry import get_tracer, get_logger, set_span_error, add_span_attributes
+from .version_resolver import GitHubVersionResolver
+from .repo_configs import get_repo_config
 
 tracer = get_tracer()
 logger = get_logger()
 
 
-def get_docs_by_language(language: str):
+async def get_docs_by_language(language: str, version: Optional[str] = None):
+    """Get OpenTelemetry documentation by language with optional version.
+
+    Args:
+        language: Programming language (e.g., "python", "java", "go")
+        version: Version to retrieve (e.g., "v1.2.3", "latest", None for main branch)
+
+    Returns:
+        Dictionary containing documentation content and metadata
+    """
     with tracer.start_as_current_span("opentelemetry.get_docs_by_language") as span:
         try:
-            RAW_BASE_URL = "https://raw.githubusercontent.com/open-telemetry/opentelemetry.io/main/content/en/docs/languages"
-            language = language.strip().lower()
-            raw_url = f"{RAW_BASE_URL}/{language}/getting-started.md"
+            # Get repository configuration
+            repo_config = get_repo_config("opentelemetry-docs")
+            version_resolver = GitHubVersionResolver(repo_config)
 
+            # Resolve version and add VCS attributes
+            version_info = await version_resolver.resolve_version(version)
+            version_resolver.add_vcs_attributes_to_span(span, version_info)
+
+            # Add function-specific attributes
             add_span_attributes(
                 span,
                 **{
                     SpanAttributes.CODE_FUNCTION: "get_docs_by_language",
                     "programming.language": language,
+                    "version.requested": version or "main",
+                    "version.resolved": version_info.resolved_version,
+                },
+            )
+
+            # Build versioned URL
+            language = language.strip().lower()
+            path = f"content/en/docs/languages/{language}/getting-started.md"
+            raw_url = version_resolver.build_raw_url(
+                path, version_info.resolved_version
+            )
+
+            add_span_attributes(
+                span,
+                **{
                     SpanAttributes.HTTP_METHOD: "GET",
                     SpanAttributes.HTTP_URL: raw_url,
+                    "http.url.versioned": version is not None,
                 },
             )
 
             logger.info(
                 "Fetching OpenTelemetry documentation",
-                extra={"language": language, "url": raw_url},
+                extra={
+                    "language": language,
+                    "version": version_info.resolved_version,
+                    "url": raw_url,
+                },
             )
 
             response = requests.get(raw_url)
@@ -57,38 +94,40 @@ def get_docs_by_language(language: str):
             )
 
             if response.status_code == 404:
-                span.add_event("docs_not_found", {"language": language})
+                span.add_event(
+                    "docs_not_found",
+                    {"language": language, "version": version_info.resolved_version},
+                )
                 logger.warning(
-                    "No documentation found for language", extra={"language": language}
+                    "No documentation found for language and version",
+                    extra={
+                        "language": language,
+                        "version": version_info.resolved_version,
+                    },
                 )
                 return {
                     "language": language,
-                    "message": f"No docs found for language: {language}",
+                    "version": version_info.resolved_version,
+                    "message": f"No docs found for language: {language} version: {version_info.resolved_version}",
                 }
 
             response.raise_for_status()
 
-            # Step 1: Convert Markdown to HTML
+            # Process content
             with tracer.start_as_current_span("markdown.convert_to_html") as md_span:
                 html = markdown(response.text)
                 add_span_attributes(
                     md_span, **{"markdown.content_length": len(response.text)}
                 )
 
-            # Step 2: Strip HTML tags to get plain text
             with tracer.start_as_current_span("html.extract_text") as html_span:
                 soup = BeautifulSoup(html, "html.parser")
                 plain_text = soup.get_text()
                 add_span_attributes(html_span, **{"html.content_length": len(html)})
 
-            # Step 3: Remove punctuation and normalize whitespace
             with tracer.start_as_current_span("text.clean_and_normalize") as clean_span:
-                cleaned_text = re.sub(
-                    r"[^\w\s]", "", plain_text
-                )  # Remove all punctuation
-                cleaned_text = re.sub(
-                    r"\s+", " ", cleaned_text
-                ).strip()  # Collapse whitespace
+                cleaned_text = re.sub(r"[^\w\s]", "", plain_text)
+                cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
 
                 add_span_attributes(
                     clean_span,
@@ -100,6 +139,13 @@ def get_docs_by_language(language: str):
 
             result = {
                 "language": language,
+                "version": version_info.resolved_version,
+                "version_info": {
+                    "resolved_version": version_info.resolved_version,
+                    "ref_type": version_info.ref_type,
+                    "resolution_source": version_info.resolution_source,
+                    "is_semantic": version_info.is_semantic,
+                },
                 "content": [{"url": raw_url, "cleaned_text": cleaned_text}],
             }
 
@@ -107,6 +153,7 @@ def get_docs_by_language(language: str):
                 "docs_processed",
                 {
                     "language": language,
+                    "version": version_info.resolved_version,
                     "content_length": len(cleaned_text),
                     "status_code": response.status_code,
                 },
@@ -114,15 +161,20 @@ def get_docs_by_language(language: str):
 
             logger.info(
                 "Successfully processed OpenTelemetry documentation",
-                extra={"language": language, "content_length": len(cleaned_text)},
+                extra={
+                    "language": language,
+                    "version": version_info.resolved_version,
+                    "content_length": len(cleaned_text),
+                },
             )
 
             return result
+
         except Exception as e:
             set_span_error(span, e)
             logger.error(
                 "Failed to get documentation by language",
                 exc_info=True,
-                extra={"language": language},
+                extra={"language": language, "version": version},
             )
             raise

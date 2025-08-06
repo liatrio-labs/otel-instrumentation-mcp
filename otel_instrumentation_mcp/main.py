@@ -59,6 +59,7 @@ from otel_instrumentation_mcp.instrumentation_score import (
 )
 from otel_instrumentation_mcp.instrumentation_score_prompt import (
     instrumentation_score_analysis_prompt as instrumentation_score_analysis_prompt_func,
+    instrumentation_score_rules_prompt as instrumentation_score_rules_prompt_func,
 )
 from otel_instrumentation_mcp.code_analysis_prompt import (
     ask_about_code as ask_about_code_func,
@@ -615,6 +616,100 @@ async def instrumentation_score_analysis_prompt(
             raise
 
 
+@mcp.prompt
+async def instrumentation_score_rules_prompt(
+    rule_categories: str = "", impact_levels: str = ""
+) -> PromptMessage:
+    """Explain Instrumentation Score rules and their importance.
+
+    Generates a user message asking for explanation of the Instrumentation Score
+    rule system, including rule categories, impact levels, and implementation guidance.
+
+    Args:
+        rule_categories: Optional comma-separated rule categories (e.g., "RES,SPA,MET")
+        impact_levels: Optional comma-separated impact levels (e.g., "Critical,Important")
+
+    Returns:
+        PromptMessage: A formatted message containing the rules explanation request
+    """
+    import time
+
+    session_id = extract_session_id_from_request()
+    with create_root_span_context(
+        tracer, "mcp.prompt.instrumentation_score_rules", "prompt", session_id
+    ) as span:
+        try:
+            add_span_attributes(
+                span,
+                **{
+                    MCPAttributes.MCP_PROMPT_NAME: "instrumentation_score_rules_prompt",
+                    MCPAttributes.MCP_PROMPT_ARGUMENTS: f"rule_categories={rule_categories}, impact_levels={impact_levels}",
+                    GenAiAttributes.GEN_AI_SYSTEM: "opentelemetry-mcp",
+                    GenAiAttributes.GEN_AI_OPERATION_NAME: "instrumentation_rules_explanation",
+                    SpanAttributes.CODE_FUNCTION: "instrumentation_score_rules_prompt",
+                },
+            )
+
+            logger.info(
+                "Generating instrumentation score rules prompt",
+                extra={
+                    "rule_categories": rule_categories,
+                    "impact_levels": impact_levels,
+                    "prompt_type": "instrumentation_score_rules",
+                },
+            )
+
+            message = instrumentation_score_rules_prompt_func(
+                rule_categories=rule_categories,
+                impact_levels=impact_levels,
+            )
+
+            estimated_input_tokens = (
+                len(f"{rule_categories} {impact_levels}".split()) * 1.3
+            )
+            estimated_output_tokens = len(message.split()) * 1.3
+            total_tokens = estimated_input_tokens + estimated_output_tokens
+
+            add_span_attributes(
+                span,
+                **{
+                    GenAiAttributes.GEN_AI_REQUEST_MODEL: "user-provided",
+                    GenAiAttributes.GEN_AI_USAGE_INPUT_TOKENS: int(
+                        estimated_input_tokens
+                    ),
+                    GenAiAttributes.GEN_AI_USAGE_OUTPUT_TOKENS: int(
+                        estimated_output_tokens
+                    ),
+                    GenAiAttributes.GEN_AI_USAGE_TOTAL_TOKENS: int(total_tokens),
+                },
+            )
+
+            span.add_event(
+                "prompt_generated",
+                {
+                    "message_length": len(message),
+                    "estimated_input_tokens": int(estimated_input_tokens),
+                    "estimated_output_tokens": int(estimated_output_tokens),
+                    "total_tokens": int(total_tokens),
+                },
+            )
+
+            return PromptMessage(
+                role="user",
+                content=TextContent(type="text", text=message),
+                messages=[
+                    Message(role="user", content=TextContent(type="text", text=message))
+                ],
+            )
+        except Exception as e:
+            set_span_error(span, e)
+            logger.error(
+                "Failed to generate instrumentation score rules prompt",
+                exc_info=True,
+            )
+            raise
+
+
 @mcp.tool
 async def list_opentelemetry_repos():
     """List OpenTelemetry repositories
@@ -1130,13 +1225,16 @@ async def get_opentelemetry_examples_by_language_http(language: str = "python"):
 
 
 @mcp.tool
-async def get_opentelemetry_docs_by_language(language: str = "python"):
-    """Get OpenTelemetry documentation by language
+async def get_opentelemetry_docs_by_language(
+    language: str = "python", version: str = None
+):
+    """Get OpenTelemetry documentation by language and version
 
-    Returns OpenTelemetry documentation for a specific programming language
+    Returns OpenTelemetry documentation for a specific programming language and version
 
     Args:
         language: Programming language (e.g. python, java, go)
+        version: Version to retrieve (e.g. "v1.2.3", "latest", or None for latest)
     """
     session_id = extract_session_id_from_request()
     with create_root_span_context(
@@ -1154,10 +1252,12 @@ async def get_opentelemetry_docs_by_language(language: str = "python"):
             )
 
             logger.info(
-                "Fetching documentation by language", extra={"language": language}
+                "Fetching documentation by language and version",
+                extra={"language": language, "version": version},
             )
 
-            docs = get_docs_by_language(language)
+            # Use unified function with optional version parameter
+            docs = await get_docs_by_language(language, version)
 
             add_span_attributes(
                 span,
@@ -1357,9 +1457,11 @@ async def get_semantic_conventions(category: str = None, count: int = 50):
 
 
 @app.get("/otel-docs")
-async def get_opentelemetry_docs_by_language_http(language: str = "python"):
-    """HTTP endpoint for getting OpenTelemetry documentation by language"""
-    result = await get_opentelemetry_docs_by_language(language)
+async def get_opentelemetry_docs_by_language_http(
+    language: str = "python", version: str = None
+):
+    """HTTP endpoint for getting OpenTelemetry documentation by language and version"""
+    result = await get_opentelemetry_docs_by_language(language, version)
     return result
 
 

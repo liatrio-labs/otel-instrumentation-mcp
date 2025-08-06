@@ -19,7 +19,7 @@ This module provides tools to fetch the Instrumentation Score specification
 and rules from the instrumentation-score/spec GitHub repository.
 """
 
-import asyncio
+
 import logging
 from typing import Dict, List, Optional, Any
 import requests
@@ -272,56 +272,3 @@ def _parse_rule_content(content: str) -> Dict[str, Any]:
             rule_data["impact"] = line.replace("**Impact:**", "").strip()
 
     return rule_data
-
-
-def get_available_rule_categories() -> Dict[str, List[str]]:
-    """
-    Get available categories for filtering rules.
-
-    Returns:
-        Dict containing available impact levels, targets, and rule prefixes
-    """
-    tracer = get_tracer()
-
-    with create_root_span_context(
-        tracer, "get_available_rule_categories", "tool"
-    ) as span:
-        try:
-            span.set_attribute(
-                MCPAttributes.MCP_TOOL_NAME, "get_instrumentation_score_rules"
-            )
-
-            # Fetch all rules to analyze categories
-            all_rules_data = fetch_instrumentation_score_rules()
-            rules = all_rules_data["rules"]
-
-            impact_levels = set()
-            targets = set()
-            rule_prefixes = set()
-
-            for rule_id, rule_data in rules.items():
-                if "impact" in rule_data:
-                    impact_levels.add(rule_data["impact"])
-                if "target" in rule_data:
-                    targets.add(rule_data["target"])
-                if "-" in rule_id:
-                    prefix = rule_id.split("-")[0]
-                    rule_prefixes.add(prefix)
-
-            categories = {
-                "impact_levels": sorted(list(impact_levels)),
-                "targets": sorted(list(targets)),
-                "rule_prefixes": sorted(list(rule_prefixes)),
-            }
-
-            span.set_attribute("categories.impact_levels_count", len(impact_levels))
-            span.set_attribute("categories.targets_count", len(targets))
-            span.set_attribute("categories.rule_prefixes_count", len(rule_prefixes))
-
-            logger.info("Successfully retrieved rule categories")
-            return categories
-
-        except Exception as e:
-            add_enhanced_error_attributes(span, e, get_categories_error="true")
-            logger.error(f"Error getting rule categories: {e}")
-            raise

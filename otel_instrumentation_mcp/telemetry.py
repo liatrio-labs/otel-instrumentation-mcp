@@ -160,12 +160,8 @@ class TelemetryConfig:
 
         Instead, we use manual instrumentation only for MCP operations.
         """
-        # Completely disable automatic instrumentation to eliminate noise
-        # RequestsInstrumentor().instrument()  # Disabled - creates noise from HTTP clients
-        # FastAPIInstrumentor().instrument()   # Disabled - creates noise from internal routing
-
-        # All instrumentation is now handled manually in MCP tool/prompt decorators
-        # This ensures only meaningful MCP operations create spans
+        # All instrumentation is handled manually in MCP tool/prompt decorators
+        pass
 
     @property
     def tracer(self) -> trace.Tracer:
@@ -330,39 +326,6 @@ def create_root_span_context(
             otel_context.detach(self.token)
 
     return RootSpanContextManager()
-
-
-def create_root_span(
-    tracer: trace.Tracer, operation_name: str, operation_type: str = "mcp"
-) -> trace.Span:
-    """Create a root span for MCP operations.
-
-    This ensures each MCP tool/prompt call gets a proper root span context,
-    preventing 'Missing root span' issues in observability tools.
-
-    Args:
-        tracer: The OpenTelemetry tracer instance
-        operation_name: Name of the operation (e.g., 'mcp.tool.list_repos')
-        operation_type: Type of operation ('mcp', 'tool', 'prompt')
-
-    Returns:
-        trace.Span: A new root span with proper context
-    """
-    # Create a new root span with empty context (no parent)
-    from opentelemetry import context as otel_context
-
-    # Start a new root span with empty context (ensures no parent_id)
-    # Using Context() creates a new, empty context with no parent span
-    span = tracer.start_span(
-        name=operation_name,
-        context=otel_context.Context(),
-    )
-
-    # Add standard attributes for the operation type
-    span.set_attribute("operation.type", operation_type)
-    span.set_attribute("mcp.operation", operation_name)
-
-    return span
 
 
 def add_enhanced_error_attributes(
@@ -732,6 +695,32 @@ class GenAiAttributes:
     GEN_AI_USAGE_TOTAL_TOKENS = "gen_ai.usage.total_tokens"
 
 
+# VCS semantic conventions following OpenTelemetry specification
+# Based on official OpenTelemetry VCS semantic conventions:
+# https://opentelemetry.io/docs/specs/semconv/registry/attributes/vcs/
+class VCSAttributes:
+    """VCS span attributes following OpenTelemetry semantic conventions."""
+
+    # Repository identification
+    VCS_REPOSITORY_NAME = "vcs.repository.name"
+    VCS_REPOSITORY_URL_FULL = "vcs.repository.url.full"
+    VCS_PROVIDER_NAME = "vcs.provider.name"
+    VCS_OWNER_NAME = "vcs.owner.name"
+
+    # Reference information (head = current, base = starting point)
+    VCS_REF_HEAD_NAME = "vcs.ref.head.name"
+    VCS_REF_HEAD_REVISION = "vcs.ref.head.revision"
+    VCS_REF_HEAD_TYPE = "vcs.ref.head.type"
+    VCS_REF_BASE_NAME = "vcs.ref.base.name"
+    VCS_REF_BASE_REVISION = "vcs.ref.base.revision"
+    VCS_REF_BASE_TYPE = "vcs.ref.base.type"
+
+    # Change/PR information
+    VCS_CHANGE_ID = "vcs.change.id"
+    VCS_CHANGE_TITLE = "vcs.change.title"
+    VCS_CHANGE_STATE = "vcs.change.state"
+
+
 def extract_session_id_from_request() -> Optional[str]:
     """Extract session ID from current HTTP request context.
 
@@ -774,7 +763,3 @@ def extract_session_id_from_request() -> Optional[str]:
         if transport == "stdio":
             return f"stdio-{os.getpid()}"
         return None
-
-
-# Removed create_session_aware_root_span_context - replaced with direct session extraction
-# in MCP tools for better control and clarity
