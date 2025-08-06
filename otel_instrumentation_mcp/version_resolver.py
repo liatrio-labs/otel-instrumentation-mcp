@@ -24,7 +24,7 @@ import re
 import time
 
 import requests
-from enum import Enum
+from enum import StrEnum
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from opentelemetry.semconv.trace import SpanAttributes
@@ -42,7 +42,7 @@ tracer = get_tracer()
 logger = get_logger()
 
 
-class VersionStrategy(Enum):
+class VersionStrategy(StrEnum):
     """Version resolution strategies for different repositories."""
 
     RELEASES_ONLY = "releases_only"

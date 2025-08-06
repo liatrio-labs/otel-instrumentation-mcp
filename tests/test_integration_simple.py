@@ -91,10 +91,10 @@ def test_version_strategy_enum():
             assert hasattr(VersionStrategy, strategy), f"Missing strategy: {strategy}"
 
         # Test enum values
-        assert VersionStrategy.RELEASES_ONLY.value == "releases_only"
-        assert VersionStrategy.TAGS_ONLY.value == "tags_only"
-        assert VersionStrategy.RELEASES_WITH_FALLBACK.value == "releases_with_fallback"
-        assert VersionStrategy.TAGS_WITH_FALLBACK.value == "tags_with_fallback"
+        assert VersionStrategy.RELEASES_ONLY == "releases_only"
+        assert VersionStrategy.TAGS_ONLY == "tags_only"
+        assert VersionStrategy.RELEASES_WITH_FALLBACK == "releases_with_fallback"
+        assert VersionStrategy.TAGS_WITH_FALLBACK == "tags_with_fallback"
 
         print("✅ Version strategy enum test passed")
 
