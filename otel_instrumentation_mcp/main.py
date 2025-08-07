@@ -74,6 +74,7 @@ from otel_instrumentation_mcp.network_utils import (
     get_optimal_host_binding,
     validate_host_binding,
 )
+from otel_instrumentation_mcp.cache import cache_manager
 from fastmcp.prompts.prompt import Message, PromptMessage, TextContent
 
 # Initialize OpenTelemetry
@@ -1832,6 +1833,7 @@ async def health_check():
     - Service status
     - MCP server availability
     - Environment configuration
+    - Cache status
     """
     try:
         # Basic health check - if we can respond, the service is running
@@ -1843,6 +1845,16 @@ async def health_check():
             "port": os.getenv("SERVICE_PORT") or os.getenv("MCP_PORT", "8080"),
             "mcp_available": True,
         }
+
+        # Add cache health status
+        try:
+            cache_health = await cache_manager.health_check()
+            health_status["cache"] = cache_health
+        except Exception as cache_error:
+            health_status["cache"] = {
+                "status": "unhealthy",
+                "error": str(cache_error),
+            }
 
         return health_status
     except Exception as e:
@@ -1906,6 +1918,29 @@ async def readiness_check():
         }
 
 
+# Add cache status endpoint
+@app.get("/cache/status")
+async def cache_status():
+    """Cache status endpoint for monitoring cache health and statistics."""
+    try:
+        cache_health = await cache_manager.health_check()
+        return {
+            "cache": cache_health,
+            "cache_enabled": os.getenv("CACHE_ENABLED", "false").lower() == "true",
+            "cache_backend": os.getenv("CACHE_BACKEND", "memory").lower(),
+        }
+    except Exception as e:
+        logger.error("Cache status check failed", exc_info=True)
+        return {
+            "cache": {
+                "status": "error",
+                "error": str(e),
+            },
+            "cache_enabled": os.getenv("CACHE_ENABLED", "false").lower() == "true",
+            "cache_backend": os.getenv("CACHE_BACKEND", "memory").lower(),
+        }
+
+
 # Add root endpoint
 @app.get("/")
 async def root():
@@ -1915,6 +1950,7 @@ async def root():
         "mcp_http_endpoint": "/mcp/",
         "mcp_sse_endpoint": "/sse/",
         "health_endpoint": "/health",
+        "cache_status_endpoint": "/cache/status",
     }
 
 

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-instrumentation-mcp
+spec:
+  template:
+    spec:
+      containers:
+        - name: otel-instrumentation-mcp
+          env:
+            # Enable caching with Redis
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: CACHE_BACKEND
+              value: "redis"
+            - name: REDIS_HOST
+              value: "redis-cache"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_DB
+              value: "0"
+            - name: CACHE_DEFAULT_TTL
+              value: "3600"  # 1 hour default
+            - name: CACHE_KEY_PREFIX
+              value: "otel_mcp:"
+            # Existing environment variables are preserved
+            - name: MCP_TRANSPORT
+              value: "http"
+            - name: MCP_PORT
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "otel-instrumentation-mcp"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otelcol-collector:4317"
