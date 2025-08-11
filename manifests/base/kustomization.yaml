@@ -7,6 +7,8 @@ resources:
 - deploy.yaml
 - service.yaml
 - otel-collector.yaml
+- redis-deployment.yaml
+- redis-service.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

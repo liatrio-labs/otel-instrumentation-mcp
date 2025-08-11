@@ -8,3 +8,27 @@
     value:
       name: OTEL_EXPORTER_OTLP_INSECURE
       value: "true"
+
+  - op: add
+    path: /spec/template/spec/containers/0/env/4
+    value:
+      name: CACHE_ENABLED
+      value: "true"
+
+  - op: add
+    path: /spec/template/spec/containers/0/env/5
+    value:
+      name: CACHE_BACKEND
+      value: "redis"
+
+  - op: add
+    path: /spec/template/spec/containers/0/env/6
+    value:
+      name: REDIS_HOST
+      value: "redis-cache"
+
+  - op: add
+    path: /spec/template/spec/containers/0/env/7
+    value:
+      name: REDIS_PORT
+      value: "6379"
