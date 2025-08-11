@@ -23,6 +23,7 @@ import json
 import os
 import time
 import hashlib
+import pickle
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 
@@ -170,7 +171,7 @@ class RedisCache(CacheBackend):
                     port=self.port,
                     db=self.db,
                     password=self.password,
-                    decode_responses=True,
+                    decode_responses=False,  # Handle binary data
                     socket_connect_timeout=5,
                     socket_timeout=5,
                 )
@@ -201,13 +202,35 @@ class RedisCache(CacheBackend):
         """Create prefixed cache key."""
         return f"{self.key_prefix}{key}"
 
+    def _serialize_value(self, value: Any) -> bytes:
+        """Serialize value for storage in Redis."""
+        try:
+            # Try JSON first for simple types (strings, numbers, lists, dicts)
+            if isinstance(value, (str, int, float, bool, list, dict, type(None))):
+                return json.dumps(value).encode("utf-8")
+            else:
+                # Use pickle for complex objects
+                return pickle.dumps(value)
+        except (TypeError, ValueError):
+            # Fallback to pickle if JSON fails
+            return pickle.dumps(value)
+
+    def _deserialize_value(self, data: bytes) -> Any:
+        """Deserialize value from Redis storage."""
+        try:
+            # Try JSON first
+            return json.loads(data.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # Fallback to pickle
+            return pickle.loads(data)
+
     async def get(self, key: str) -> Optional[Any]:
         """Get value from Redis cache."""
         try:
             redis_client = await self._get_redis()
             value = await redis_client.get(self._make_key(key))
             if value:
-                return json.loads(value)
+                return self._deserialize_value(value)
             return None
         except Exception as e:
             logger.warning(
@@ -220,7 +243,7 @@ class RedisCache(CacheBackend):
         """Set value in Redis cache with TTL."""
         try:
             redis_client = await self._get_redis()
-            serialized_value = json.dumps(value, default=str)
+            serialized_value = self._serialize_value(value)
             result = await redis_client.setex(
                 self._make_key(key), ttl or self.default_ttl, serialized_value
             )
@@ -327,7 +350,8 @@ class CacheManager:
             key_parts.append(f"repo:{repo}")
         if keywords:
             # Hash keywords to avoid key length issues
-            keywords_hash = hashlib.md5(keywords.encode()).hexdigest()[:8]
+            # keywords_hash = hashlib.md5(keywords.encode()).hexdigest()[:8]
+            keywords_hash = hashlib.sha256(keywords.encode()).hexdigest()[:16]
             key_parts.append(f"kw:{keywords_hash}")
 
         # Add any additional parameters

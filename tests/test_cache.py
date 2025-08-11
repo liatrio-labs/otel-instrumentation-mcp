@@ -49,18 +49,21 @@ class TestInMemoryCache:
     @pytest.mark.asyncio
     async def test_ttl_expiration(self, cache):
         """Test that keys expire after TTL."""
-        await cache.set("expire_key", "expire_value", ttl=0.1)
+        with patch("time.time") as mock_time:
+            base_time = 1000.0
+            mock_time.return_value = base_time
+            await cache.set("expire_key", "expire_value", ttl=0.1)
 
-        # Should exist immediately
-        result = await cache.get("expire_key")
-        assert result == "expire_value"
+            # Should exist immediately
+            result = await cache.get("expire_key")
+            assert result == "expire_value"
 
-        # Wait for expiration
-        await asyncio.sleep(0.2)
+            # Advance time past expiration
+            mock_time.return_value = base_time + 0.2
 
-        # Should be expired
-        result = await cache.get("expire_key")
-        assert result is None
+            # Should be expired
+            result = await cache.get("expire_key")
+            assert result is None
 
     @pytest.mark.asyncio
     async def test_delete(self, cache):
@@ -98,19 +101,23 @@ class TestInMemoryCache:
     @pytest.mark.asyncio
     async def test_health_check(self, cache):
         """Test health check functionality."""
-        # Add some entries
-        await cache.set("health1", "value1")
-        await cache.set("health2", "value2", ttl=0.1)
+        with patch("time.time") as mock_time:
+            base_time = 1000.0
+            mock_time.return_value = base_time
 
-        # Wait for one to expire
-        await asyncio.sleep(0.2)
+            # Add some entries
+            await cache.set("health1", "value1")
+            await cache.set("health2", "value2", ttl=0.1)
 
-        health = await cache.health_check()
+            # Advance time past expiration for health2
+            mock_time.return_value = base_time + 0.2
 
-        assert health["status"] == "healthy"
-        assert health["backend"] == "in_memory"
-        assert health["entries"] == 1  # Only one should remain
-        assert health["expired_cleaned"] == 1  # One should have been cleaned
+            health = await cache.health_check()
+
+            assert health["status"] == "healthy"
+            assert health["backend"] == "in_memory"
+            assert health["entries"] == 1  # Only one should remain
+            assert health["expired_cleaned"] == 1  # One should have been cleaned
 
 
 class TestRedisCache:
