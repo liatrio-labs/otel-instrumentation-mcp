@@ -25,12 +25,14 @@ import time
 import hashlib
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
+
 try:
     from opentelemetry.semconv.trace import SpanAttributes
 except ImportError:
     # Fallback for when OpenTelemetry is not available
     class SpanAttributes:
         CODE_FUNCTION = "code.function"
+
 
 from .telemetry import get_tracer, get_logger, add_span_attributes, set_span_error
 
@@ -553,9 +555,7 @@ def create_cache_manager() -> CacheManager:
     else:
         default_ttl = int(os.getenv("CACHE_DEFAULT_TTL", "3600"))
         backend = InMemoryCache(default_ttl=default_ttl)
-        logger.info(
-            "In-memory cache enabled", extra={"default_ttl": default_ttl}
-        )
+        logger.info("In-memory cache enabled", extra={"default_ttl": default_ttl})
 
     return CacheManager(backend)
 

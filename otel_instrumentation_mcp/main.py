@@ -1934,7 +1934,7 @@ async def cache_status():
         return {
             "cache": {
                 "status": "error",
-                "error": str(e),
+                "error": "Cache status check failed",
             },
             "cache_enabled": os.getenv("CACHE_ENABLED", "false").lower() == "true",
             "cache_backend": os.getenv("CACHE_BACKEND", "memory").lower(),
