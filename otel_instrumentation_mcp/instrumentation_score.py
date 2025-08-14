@@ -119,7 +119,9 @@ async def fetch_instrumentation_score_rules(
     # Use cache for instrumentation score rules with 6-hour TTL
     return await cache_manager.get_or_set(
         operation="get_instrumentation_score_rules",
-        fetch_func=lambda: _fetch_instrumentation_score_rules_uncached(rule_ids, impact_levels, targets),
+        fetch_func=lambda: _fetch_instrumentation_score_rules_uncached(
+            rule_ids, impact_levels, targets
+        ),
         ttl=6 * 60 * 60,  # 6 hours
         rule_ids=rule_ids,
         impact_levels=impact_levels,

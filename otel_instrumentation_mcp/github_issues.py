@@ -47,7 +47,9 @@ async def get_repo_issues(repo: str, owner: str = "open-telemetry", count: int =
     )
 
 
-async def _get_repo_issues_uncached(repo: str, owner: str = "open-telemetry", count: int = 10):
+async def _get_repo_issues_uncached(
+    repo: str, owner: str = "open-telemetry", count: int = 10
+):
     import time
 
     start_time = time.time()
