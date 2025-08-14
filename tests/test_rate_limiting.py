@@ -195,7 +195,7 @@ async def test_opentelemetry_repos_rate_limit_integration():
                 return_value=mock_response,
             ):
                 # Should return empty list instead of raising exception
-                result = get_opentelemetry_repos()
+                result = await get_opentelemetry_repos()
                 assert result == []
 
 

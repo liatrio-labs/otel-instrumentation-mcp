@@ -15,6 +15,20 @@ The MCP server supports optional caching to improve performance and reduce API c
 - **Observability**: Cache operations are instrumented with OpenTelemetry traces
 - **Health monitoring**: Cache health is included in health check endpoints
 
+## Cached Tools
+
+All MCP tools now support caching when enabled:
+
+- **list_opentelemetry_repos**: Repository lists (24 hours TTL)
+- **list_opentelemetry_issues**: GitHub issues (1 hour TTL)
+- **search_opentelemetry_issues**: GitHub issue search (1 hour TTL)
+- **get_opentelemetry_examples**: Demo services documentation (6 hours TTL)
+- **get_opentelemetry_examples_by_language**: Demo services by language (24 hours TTL)
+- **get_opentelemetry_docs_by_language**: Documentation by language (version-dependent TTL)
+- **get_semantic_conventions**: Semantic conventions (6 hours TTL)
+- **get_instrumentation_score_spec**: Instrumentation Score specification (24 hours TTL)
+- **get_instrumentation_score_rules**: Instrumentation Score rules (6 hours TTL)
+
 ## Cache Backends
 
 ### In-Memory Cache (Default when enabled)
@@ -52,7 +66,12 @@ Different content types have different cache durations:
 - **Documentation (main/latest)**: 1 hour  
 - **Semantic Conventions**: 6 hours
 - **GitHub Issues**: 1 hour
+- **GitHub Issue Search**: 1 hour
 - **Repository Lists**: 24 hours
+- **Demo Services Documentation**: 6 hours
+- **Demo Services by Language**: 24 hours
+- **Instrumentation Score Specification**: 24 hours
+- **Instrumentation Score Rules**: 6 hours
 
 ## Deployment Options
 

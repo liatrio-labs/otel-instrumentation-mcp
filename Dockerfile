@@ -23,7 +23,8 @@ COPY pyproject.toml uv.lock README.md ./
 COPY otel_instrumentation_mcp/ ./otel_instrumentation_mcp/
 
 # Install dependencies using uv with proper resolution from pyproject.toml
-RUN uv sync --no-dev --frozen
+RUN uv sync --no-dev --frozen --all-extras
+# RUN uv sync --no-dev --frozen
 
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app

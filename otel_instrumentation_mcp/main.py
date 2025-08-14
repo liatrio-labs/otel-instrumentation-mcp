@@ -770,7 +770,7 @@ async def list_opentelemetry_repos():
                 },
             )
 
-            repositories = get_opentelemetry_repos()
+            repositories = await get_opentelemetry_repos()
 
             # Add operation metrics with detailed results
             output_data = {"repositories": repositories}
@@ -1127,7 +1127,7 @@ async def get_opentelemetry_examples():
 
             logger.info("Fetching OpenTelemetry examples")
 
-            examples = get_demo_services_doc()
+            examples = await get_demo_services_doc()
 
             span.add_event(
                 "examples_fetched",
@@ -1185,7 +1185,7 @@ async def get_opentelemetry_examples_by_language(language: str = "python"):
 
             logger.info("Fetching examples by language", extra={"language": language})
 
-            examples = get_demo_services_by_language(language)
+            examples = await get_demo_services_by_language(language)
 
             add_span_attributes(
                 span, **{"examples.services.count": len(examples.get("services", []))}
@@ -1538,7 +1538,7 @@ async def get_instrumentation_score_spec():
                 },
             )
 
-            specification = fetch_instrumentation_score_specification()
+            specification = await fetch_instrumentation_score_specification()
 
             # Add operation metrics
             output_data = {"specification": specification}
@@ -1719,7 +1719,7 @@ async def get_instrumentation_score_rules(
                 },
             )
 
-            rules_data = fetch_instrumentation_score_rules(
+            rules_data = await fetch_instrumentation_score_rules(
                 rule_ids=rule_ids_list,
                 impact_levels=impact_levels_list,
                 targets=targets_list,

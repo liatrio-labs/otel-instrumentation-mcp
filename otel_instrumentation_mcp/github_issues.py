@@ -27,6 +27,7 @@ from .telemetry import (
     create_span_event,
 )
 from .github_app_auth import github_app_auth, GitHubAppAuthError
+from .cache import cache_manager
 
 GITHUB_API_URL = os.getenv("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql")
 
@@ -35,6 +36,18 @@ logger = get_logger()
 
 
 async def get_repo_issues(repo: str, owner: str = "open-telemetry", count: int = 10):
+    # Use cache for GitHub issues with 1-hour TTL (dynamic content)
+    return await cache_manager.get_or_set(
+        operation="get_repo_issues",
+        fetch_func=lambda: _get_repo_issues_uncached(repo, owner, count),
+        ttl=60 * 60,  # 1 hour
+        repo=repo,
+        owner=owner,
+        count=count,
+    )
+
+
+async def _get_repo_issues_uncached(repo: str, owner: str = "open-telemetry", count: int = 10):
     import time
 
     start_time = time.time()
@@ -228,6 +241,21 @@ async def get_repo_issues(repo: str, owner: str = "open-telemetry", count: int =
 
 
 async def search_repo_issues(
+    repo: str, keywords: str, owner: str = "open-telemetry", count: int = 10
+):
+    # Use cache for GitHub search with 1-hour TTL (dynamic content)
+    return await cache_manager.get_or_set(
+        operation="search_repo_issues",
+        fetch_func=lambda: _search_repo_issues_uncached(repo, keywords, owner, count),
+        ttl=60 * 60,  # 1 hour
+        repo=repo,
+        keywords=keywords,
+        owner=owner,
+        count=count,
+    )
+
+
+async def _search_repo_issues_uncached(
     repo: str, keywords: str, owner: str = "open-telemetry", count: int = 10
 ):
     with tracer.start_as_current_span("github.search_repo_issues") as span:
