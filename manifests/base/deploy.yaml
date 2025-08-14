@@ -25,6 +25,8 @@ spec:
               value: "otel-instrumentation-mcp"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otelcol-collector:4317"
+            - name: CACHE_ENABLED
+              value: "false"
               # Example GITHUB APP Secrets
               # - name: GITHUB_APP_ID
               #   valueFrom:

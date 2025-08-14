@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-instrumentation-mcp
+spec:
+  template:
+    spec:
+      containers:
+        - name: otel-instrumentation-mcp
+          env:
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: CACHE_BACKEND
+              value: "redis"
+            - name: REDIS_HOST
+              value: "redis-cache"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_DB
+              value: "0"
+            - name: CACHE_DEFAULT_TTL
+              value: "7200"  # 2 hours for production
+            - name: CACHE_KEY_PREFIX
+              value: "otel_mcp_prod:"

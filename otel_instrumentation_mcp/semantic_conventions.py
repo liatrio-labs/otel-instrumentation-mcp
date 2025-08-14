@@ -36,6 +36,7 @@ from .telemetry import (
     create_span_event,
 )
 from .github_app_auth import github_app_auth, GitHubAppAuthError
+from .cache import cache_manager
 
 GITHUB_API_URL = os.getenv("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql")
 
@@ -56,6 +57,26 @@ async def get_semantic_conventions(
     Returns:
         List of semantic convention markdown files with their content and metadata
     """
+    # Cache for 6 hours since semantic conventions don't change frequently
+    cache_ttl = 21600
+
+    async def fetch_conventions():
+        return await _fetch_semantic_conventions(category, count)
+
+    # Use cache manager to get or fetch semantic conventions
+    return await cache_manager.get_or_set(
+        operation="semantic_conventions",
+        fetch_func=fetch_conventions,
+        ttl=cache_ttl,
+        category=category,
+        count=count,
+    )
+
+
+async def _fetch_semantic_conventions(
+    category: Optional[str] = None, count: int = 50
+) -> List[Dict[str, Any]]:
+    """Internal function to fetch semantic conventions without caching."""
     with tracer.start_as_current_span("github.get_semantic_conventions") as span:
         try:
             # Add comprehensive attributes with enhanced context
