@@ -22,6 +22,11 @@ dependencies = [
     "PyJWT>=2.8.0",
 ]
 
+[project.optional-dependencies]
+redis = [
+    "redis>=5.0.0",
+]
+
 [dependency-groups]
 dev = [
     "black>=24.0.0",

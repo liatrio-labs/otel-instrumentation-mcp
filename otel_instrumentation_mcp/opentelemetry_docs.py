@@ -22,6 +22,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 from .telemetry import get_tracer, get_logger, set_span_error, add_span_attributes
 from .version_resolver import GitHubVersionResolver
 from .repo_configs import get_repo_config
+from .cache import cache_manager
 
 tracer = get_tracer()
 logger = get_logger()
@@ -37,6 +38,26 @@ async def get_docs_by_language(language: str, version: Optional[str] = None):
     Returns:
         Dictionary containing documentation content and metadata
     """
+    # Define cache TTL based on version type
+    cache_ttl = 86400  # 24 hours for stable versions
+    if version is None or version == "main" or version == "latest":
+        cache_ttl = 3600  # 1 hour for main/latest
+
+    async def fetch_docs():
+        return await _fetch_docs_by_language(language, version)
+
+    # Use cache manager to get or fetch docs
+    return await cache_manager.get_or_set(
+        operation="docs_by_language",
+        fetch_func=fetch_docs,
+        ttl=cache_ttl,
+        language=language,
+        version=version,
+    )
+
+
+async def _fetch_docs_by_language(language: str, version: Optional[str] = None):
+    """Internal function to fetch docs without caching."""
     with tracer.start_as_current_span("opentelemetry.get_docs_by_language") as span:
         try:
             # Get repository configuration

@@ -17,6 +17,7 @@ import requests
 from opentelemetry.semconv.trace import SpanAttributes
 
 from .telemetry import get_tracer, get_logger, set_span_error, add_span_attributes
+from .cache import cache_manager
 
 GITHUB_API_URL = os.getenv("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -25,7 +26,16 @@ tracer = get_tracer()
 logger = get_logger()
 
 
-def get_opentelemetry_repos():
+async def get_opentelemetry_repos():
+    # Use cache for repository list with 24-hour TTL (stable content)
+    return await cache_manager.get_or_set(
+        operation="list_repos",
+        fetch_func=_fetch_opentelemetry_repos_uncached,
+        ttl=24 * 60 * 60,  # 24 hours
+    )
+
+
+async def _fetch_opentelemetry_repos_uncached():
     with tracer.start_as_current_span("github.get_opentelemetry_repos") as span:
         try:
             add_span_attributes(

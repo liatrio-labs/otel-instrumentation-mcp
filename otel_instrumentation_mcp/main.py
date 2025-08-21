@@ -74,6 +74,7 @@ from otel_instrumentation_mcp.network_utils import (
     get_optimal_host_binding,
     validate_host_binding,
 )
+from otel_instrumentation_mcp.cache import cache_manager
 from fastmcp.prompts.prompt import Message, PromptMessage, TextContent
 
 # Initialize OpenTelemetry
@@ -769,7 +770,7 @@ async def list_opentelemetry_repos():
                 },
             )
 
-            repositories = get_opentelemetry_repos()
+            repositories = await get_opentelemetry_repos()
 
             # Add operation metrics with detailed results
             output_data = {"repositories": repositories}
@@ -1126,7 +1127,7 @@ async def get_opentelemetry_examples():
 
             logger.info("Fetching OpenTelemetry examples")
 
-            examples = get_demo_services_doc()
+            examples = await get_demo_services_doc()
 
             span.add_event(
                 "examples_fetched",
@@ -1184,7 +1185,7 @@ async def get_opentelemetry_examples_by_language(language: str = "python"):
 
             logger.info("Fetching examples by language", extra={"language": language})
 
-            examples = get_demo_services_by_language(language)
+            examples = await get_demo_services_by_language(language)
 
             add_span_attributes(
                 span, **{"examples.services.count": len(examples.get("services", []))}
@@ -1537,7 +1538,7 @@ async def get_instrumentation_score_spec():
                 },
             )
 
-            specification = fetch_instrumentation_score_specification()
+            specification = await fetch_instrumentation_score_specification()
 
             # Add operation metrics
             output_data = {"specification": specification}
@@ -1718,7 +1719,7 @@ async def get_instrumentation_score_rules(
                 },
             )
 
-            rules_data = fetch_instrumentation_score_rules(
+            rules_data = await fetch_instrumentation_score_rules(
                 rule_ids=rule_ids_list,
                 impact_levels=impact_levels_list,
                 targets=targets_list,
@@ -1832,6 +1833,7 @@ async def health_check():
     - Service status
     - MCP server availability
     - Environment configuration
+    - Cache status
     """
     try:
         # Basic health check - if we can respond, the service is running
@@ -1843,6 +1845,16 @@ async def health_check():
             "port": os.getenv("SERVICE_PORT") or os.getenv("MCP_PORT", "8080"),
             "mcp_available": True,
         }
+
+        # Add cache health status
+        try:
+            cache_health = await cache_manager.health_check()
+            health_status["cache"] = cache_health
+        except Exception as cache_error:
+            health_status["cache"] = {
+                "status": "unhealthy",
+                "error": str(cache_error),
+            }
 
         return health_status
     except Exception as e:
@@ -1906,6 +1918,29 @@ async def readiness_check():
         }
 
 
+# Add cache status endpoint
+@app.get("/cache/status")
+async def cache_status():
+    """Cache status endpoint for monitoring cache health and statistics."""
+    try:
+        cache_health = await cache_manager.health_check()
+        return {
+            "cache": cache_health,
+            "cache_enabled": os.getenv("CACHE_ENABLED", "false").lower() == "true",
+            "cache_backend": os.getenv("CACHE_BACKEND", "memory").lower(),
+        }
+    except Exception as e:
+        logger.error("Cache status check failed", exc_info=True)
+        return {
+            "cache": {
+                "status": "error",
+                "error": "Cache status check failed",
+            },
+            "cache_enabled": os.getenv("CACHE_ENABLED", "false").lower() == "true",
+            "cache_backend": os.getenv("CACHE_BACKEND", "memory").lower(),
+        }
+
+
 # Add root endpoint
 @app.get("/")
 async def root():
@@ -1915,6 +1950,7 @@ async def root():
         "mcp_http_endpoint": "/mcp/",
         "mcp_sse_endpoint": "/sse/",
         "health_endpoint": "/health",
+        "cache_status_endpoint": "/cache/status",
     }
 
 

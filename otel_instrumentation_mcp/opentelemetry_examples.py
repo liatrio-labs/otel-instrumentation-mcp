@@ -17,6 +17,7 @@ import requests
 from opentelemetry.semconv.trace import SpanAttributes
 
 from .telemetry import get_tracer, get_logger, set_span_error, add_span_attributes
+from .cache import cache_manager
 
 GITHUB_API_URL = os.getenv("GITHUB_REST_URL", "https://api.github.com")
 OPENTELEMETRY_DOCS_REPO = os.getenv(
@@ -28,7 +29,16 @@ tracer = get_tracer()
 logger = get_logger()
 
 
-def get_demo_services_doc():
+async def get_demo_services_doc():
+    # Use cache for demo services documentation with 6-hour TTL
+    return await cache_manager.get_or_set(
+        operation="get_demo_services_doc",
+        fetch_func=_get_demo_services_doc_uncached,
+        ttl=6 * 60 * 60,  # 6 hours
+    )
+
+
+async def _get_demo_services_doc_uncached():
     with tracer.start_as_current_span("github.get_demo_services_doc") as span:
         try:
             add_span_attributes(
@@ -103,7 +113,17 @@ def get_demo_services_doc():
             raise
 
 
-def get_demo_services_by_language(language: str):
+async def get_demo_services_by_language(language: str):
+    # Use cache for demo services by language with 24-hour TTL (static content)
+    return await cache_manager.get_or_set(
+        operation="get_demo_services_by_language",
+        fetch_func=lambda: _get_demo_services_by_language_uncached(language),
+        ttl=24 * 60 * 60,  # 24 hours
+        language=language,
+    )
+
+
+async def _get_demo_services_by_language_uncached(language: str):
     with tracer.start_as_current_span(
         "opentelemetry.get_demo_services_by_language"
     ) as span:

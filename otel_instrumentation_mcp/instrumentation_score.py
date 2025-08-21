@@ -31,6 +31,7 @@ from otel_instrumentation_mcp.telemetry import (
     add_enhanced_error_attributes,
     MCPAttributes,
 )
+from .cache import cache_manager
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -41,9 +42,24 @@ INSTRUMENTATION_SCORE_REPO_BASE = (
 GITHUB_API_BASE = "https://api.github.com/repos/instrumentation-score/spec"
 
 
-def fetch_instrumentation_score_specification() -> str:
+async def fetch_instrumentation_score_specification() -> str:
     """
-    Fetch the main instrumentation score specification document.
+    Fetch the main instrumentation score specification document with caching.
+
+    Returns:
+        str: The specification content in markdown format
+    """
+    # Use cache for instrumentation score specification with 24-hour TTL (stable content)
+    return await cache_manager.get_or_set(
+        operation="get_instrumentation_score_spec",
+        fetch_func=_fetch_instrumentation_score_specification_uncached,
+        ttl=24 * 60 * 60,  # 24 hours
+    )
+
+
+async def _fetch_instrumentation_score_specification_uncached() -> str:
+    """
+    Fetch the main instrumentation score specification document (uncached).
 
     Returns:
         str: The specification content in markdown format
@@ -84,13 +100,42 @@ def fetch_instrumentation_score_specification() -> str:
             raise
 
 
-def fetch_instrumentation_score_rules(
+async def fetch_instrumentation_score_rules(
     rule_ids: Optional[List[str]] = None,
     impact_levels: Optional[List[str]] = None,
     targets: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    Fetch instrumentation score rules from the GitHub repository.
+    Fetch instrumentation score rules from the GitHub repository with caching.
+
+    Args:
+        rule_ids: Optional list of specific rule IDs to fetch (e.g., ["RES-001", "SPA-001"])
+        impact_levels: Optional list of impact levels to filter by (e.g., ["Critical", "Important"])
+        targets: Optional list of targets to filter by (e.g., ["Resource", "Span"])
+
+    Returns:
+        Dict containing rules information with metadata
+    """
+    # Use cache for instrumentation score rules with 6-hour TTL
+    return await cache_manager.get_or_set(
+        operation="get_instrumentation_score_rules",
+        fetch_func=lambda: _fetch_instrumentation_score_rules_uncached(
+            rule_ids, impact_levels, targets
+        ),
+        ttl=6 * 60 * 60,  # 6 hours
+        rule_ids=rule_ids,
+        impact_levels=impact_levels,
+        targets=targets,
+    )
+
+
+async def _fetch_instrumentation_score_rules_uncached(
+    rule_ids: Optional[List[str]] = None,
+    impact_levels: Optional[List[str]] = None,
+    targets: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Fetch instrumentation score rules from the GitHub repository (uncached).
 
     Args:
         rule_ids: Optional list of specific rule IDs to fetch (e.g., ["RES-001", "SPA-001"])

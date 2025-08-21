@@ -15,3 +15,8 @@ patches:
       kind: OpenTelemetryCollector
       name: otelcol
     path: otel-collector-patch.yaml
+
+  - target:
+      kind: Deployment
+      name: redis-cache
+    path: redis-patch.yaml

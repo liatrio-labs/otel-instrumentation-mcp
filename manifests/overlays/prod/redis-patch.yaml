@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cache
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          args:
+            - redis-server
+            - --maxmemory
+            - 512mb
+            - --maxmemory-policy
+            - allkeys-lru
+            - --appendonly
+            - "yes"  # Enable persistence for production
+            - --appendfsync
+            - everysec
