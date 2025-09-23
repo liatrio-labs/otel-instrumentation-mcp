@@ -52,83 +52,100 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, excluded_paths: Optional[list[str]] = None):
         super().__init__(app)
         self.excluded_paths = excluded_paths or [
-            "/health",
             "/ready",
-            "/sse",  # SSE endpoint - internal communication
-            "/mcp",  # MCP internal endpoints
+            # Note: We don't exclude /health and /cache/status as these should be instrumented
+            # Note: We don't exclude /sse and /mcp as these are handled by _is_mcp_operation
         ]
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        """Process request with selective MCP instrumentation."""
+        """Process request with selective MCP instrumentation and client IP capture."""
+        import contextvars
+        from opentelemetry import trace
 
-        # Skip instrumentation for excluded paths
-        if self._should_exclude_path(request.url.path):
-            return await call_next(request)
+        # Extract client IP for all requests
+        client_ip = self._extract_client_ip(request)
+        
+        # Store client IP in request state for manual spans to access
+        if client_ip:
+            request.state.client_ip = client_ip
+        
+        # Store request in context variable for telemetry functions to access
+        request_context = contextvars.ContextVar("current_request", default=None)
+        request_context.set(request)
 
-        # Extract session information
-        session_id = self._extract_session_id(request)
-        transport_type = self._detect_transport_type(request)
+        # Add client IP to any existing span in the current context
+        current_span = trace.get_current_span()
+        if current_span and current_span.is_recording() and client_ip:
+            current_span.set_attribute("source.address", client_ip)
+            current_span.set_attribute("http.client_ip", client_ip)
 
-        # Create root span for MCP operations only
-        if self._is_mcp_operation(request):
+        # Check if this is a meaningful MCP operation that should be instrumented
+        if self._is_mcp_operation(request) and not self._should_exclude_path(request.url.path):
+            # Create a root span for this MCP operation
+            session_id = self._extract_session_id(request)
+            transport_type = self._detect_transport_type(request)
             operation_name = self._get_operation_name(request)
-
-            with tracer.start_as_current_span(
-                name=operation_name,
-                attributes=self._build_span_attributes(
-                    request, session_id, transport_type, operation_name
-                ),
-            ) as span:
+            
+            with tracer.start_as_current_span(operation_name) as span:
+                # Build comprehensive span attributes including client IP
+                attributes = self._build_span_attributes(
+                    request, session_id, transport_type, operation_name, client_ip
+                )
+                span.set_attributes(attributes)
+                
+                # Add span event for request start
+                span.add_event("http_request_started", {
+                    "http.method": request.method,
+                    "http.url": str(request.url),
+                    "client.ip": client_ip or "unknown",
+                    "transport.type": transport_type,
+                })
+                
                 try:
+                    # Process the request
                     response = await call_next(request)
-
-                    # Add response attributes using semantic conventions
-                    response_attributes = {
+                    
+                    # Add response attributes
+                    span.set_attributes({
                         SpanAttributes.HTTP_RESPONSE_STATUS_CODE: response.status_code,
-                    }
-
-                    # Add response size if available
-                    if hasattr(response, "body") and response.body:
-                        response_attributes["http.response.body.size"] = len(
-                            response.body
-                        )
-
-                    add_span_attributes(span, **response_attributes)
-
-                    # Set span status based on HTTP semantic conventions
+                    })
+                    
+                    # Set span status based on HTTP status
                     if response.status_code >= 400:
-                        if response.status_code >= 500:
-                            # 5xx errors are always errors
-                            span.set_status(
-                                Status(StatusCode.ERROR, f"HTTP {response.status_code}")
-                            )
-                        # 4xx errors: leave unset for server spans (this is server-side middleware)
+                        span.set_status(Status(StatusCode.ERROR, f"HTTP {response.status_code}"))
                     else:
-                        # 1xx, 2xx, 3xx: leave unset (OK)
-                        pass
-
+                        span.set_status(Status(StatusCode.OK))
+                    
+                    # Add completion event
+                    span.add_event("http_request_completed", {
+                        "http.status_code": response.status_code,
+                        "response.success": response.status_code < 400,
+                    })
+                    
                     return response
-
+                    
                 except Exception as e:
-                    # Set error attributes following semantic conventions
-                    error_type = e.__class__.__name__
-                    span.set_attribute("error.type", error_type)
-                    span.set_attribute(SpanAttributes.EXCEPTION_MESSAGE, str(e))
+                    # Handle errors
                     span.set_status(Status(StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
-                    logger.error(
-                        f"MCP operation failed: {operation_name}",
-                        exc_info=True,
-                        extra={
-                            "session_id": session_id,
-                            "transport": transport_type,
-                            "operation": operation_name,
-                            "error_type": error_type,
-                        },
-                    )
+                    span.set_attributes({
+                        SpanAttributes.ERROR_TYPE: e.__class__.__name__,
+                        "error.message": str(e),
+                    })
+                    span.add_event("http_request_failed", {
+                        "error.type": e.__class__.__name__,
+                        "error.message": str(e),
+                    })
                     raise
         else:
-            # Non-MCP operations - pass through without instrumentation
+            # For non-MCP operations, just pass through
+            # But still try to add client IP to any existing span
+            current_span = trace.get_current_span()
+            if current_span and current_span.is_recording() and client_ip:
+                current_span.set_attributes({
+                    "source.address": client_ip,
+                    "http.client_ip": client_ip,
+                })
+            
             return await call_next(request)
 
     def _should_exclude_path(self, path: str) -> bool:
@@ -147,6 +164,42 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
         if session_id:
             return session_id
 
+        return None
+
+    def _extract_client_ip(self, request: Request) -> Optional[str]:
+        """Extract the real client IP address from various headers and sources."""
+        # Check X-Forwarded-For header first (most common for load balancers)
+        xff = request.headers.get("X-Forwarded-For")
+        if xff:
+            # X-Forwarded-For can contain multiple IPs, take the first one
+            ips = [ip.strip() for ip in xff.split(",")]
+            if ips and ips[0] and ips[0] != "unknown":
+                return ips[0]
+        
+        # Check X-Real-IP header
+        xri = request.headers.get("X-Real-IP")
+        if xri and xri != "unknown":
+            return xri
+        
+        # Check CF-Connecting-IP (Cloudflare)
+        cfip = request.headers.get("CF-Connecting-IP")
+        if cfip and cfip != "unknown":
+            return cfip
+        
+        # Check X-Forwarded-Proto and other common proxy headers
+        forwarded = request.headers.get("Forwarded")
+        if forwarded:
+            # Parse RFC 7239 Forwarded header: for=192.0.2.60;proto=http;by=203.0.113.43
+            for part in forwarded.split(";"):
+                if part.strip().startswith("for="):
+                    ip = part.strip()[4:].strip('"')
+                    if ip and ip != "unknown":
+                        return ip
+        
+        # Fall back to client address from request
+        if hasattr(request, "client") and request.client:
+            return request.client.host
+        
         return None
 
     def _detect_transport_type(self, request: Request) -> str:
@@ -175,10 +228,10 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
         """Determine if this is a meaningful MCP operation to instrument."""
         path = request.url.path
 
-        # Direct HTTP endpoints for tools (these are meaningful)
-        mcp_endpoints = ["/repos", "/issues", "/examples", "/demo", "/otel-docs"]
+        # Direct HTTP endpoints that exist
+        direct_endpoints = ["/health", "/cache/status"]
 
-        if any(endpoint in path for endpoint in mcp_endpoints):
+        if any(path.startswith(endpoint) for endpoint in direct_endpoints):
             return True
 
         # SSE GET requests (establishing connection)
@@ -202,12 +255,8 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
             # Use HTTP method + path pattern for HTTP spans
             # Map specific endpoints to low-cardinality path templates
             path_templates = {
-                "/repos": "/repos",
-                "/issues": "/issues",
-                "/issues/search": "/issues/search",
-                "/examples": "/examples",
-                "/demo": "/demo",
-                "/otel-docs": "/otel-docs",
+                "/health": "/health",
+                "/cache/status": "/cache/status",
                 "/sse": "/sse",
                 "/mcp": "/mcp",
             }
@@ -223,12 +272,8 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
 
         # For stdio transport, use MCP-specific naming
         endpoint_mapping = {
-            "/repos": "mcp.tool.list_opentelemetry_repos",
-            "/issues": "mcp.tool.list_opentelemetry_issues",
-            "/issues/search": "mcp.tool.search_opentelemetry_issues",
-            "/examples": "mcp.tool.get_opentelemetry_examples",
-            "/demo": "mcp.tool.get_opentelemetry_examples_by_language",
-            "/otel-docs": "mcp.tool.get_opentelemetry_docs_by_language",
+            "/health": "mcp.health.check",
+            "/cache/status": "mcp.cache.status",
         }
 
         for endpoint, operation in endpoint_mapping.items():
@@ -249,6 +294,7 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
         session_id: Optional[str],
         transport_type: str,
         operation_name: str,
+        client_ip: Optional[str] = None,
     ) -> dict:
         """Build comprehensive span attributes for MCP operations following OpenTelemetry semantic conventions."""
         attributes = {
@@ -267,6 +313,11 @@ class MCPInstrumentationMiddleware(BaseHTTPMiddleware):
         # Add server port if available
         if request.url.port:
             attributes[SpanAttributes.SERVER_PORT] = request.url.port
+
+        # Add client IP for GeoIP processing
+        if client_ip:
+            attributes["source.address"] = client_ip
+            attributes["http.client_ip"] = client_ip
 
         # Add network attributes for HTTP/SSE transport
         if transport_type in ["http", "sse"]:
