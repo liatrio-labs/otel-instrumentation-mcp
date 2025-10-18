@@ -1,20 +1,18 @@
 ---
-
 <p align="center">
-  <a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/actions/workflows/build.yml?query=branch%3Amain">
-    <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/liatrio-labs/otel-instrumentation-mcp/build.yml?branch=main&style=for-the-badge">
-  </a>
-  <a href="https://codecov.io/gh/liatrio-labs/otel-instrumentation-mcp/branch/main" >
-    <img alt="Codecov Status" src="https://img.shields.io/codecov/c/github/liatrio-labs/otel-instrumentation-mcp?style=for-the-badge"/>
-  </a>
-  <a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/releases">
-    <img alt="GitHub release" src="https://img.shields.io/github/v/release/liatrio-labs/otel-instrumentation-mcp?include_prereleases&style=for-the-badge">
-  </a>
-  <a href="https://api.securityscorecards.dev/projects/github.com/liatrio-labs/otel-instrumentation-mcp/badge">
-    <img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/liatrio-labs/otel-instrumentation-mcp?label=openssf%20scorecard&style=for-the-badge">
-  </a>
+<a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/actions/workflows/build.yml?query=branch%3Amain">
+<img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/liatrio-labs/otel-instrumentation-mcp/build.yml?branch=main&style=for-the-badge">
+</a>
+<a href="https://codecov.io/gh/liatrio-labs/otel-instrumentation-mcp/branch/main" >
+<img alt="Codecov Status" src="https://img.shields.io/codecov/c/github/liatrio-labs/otel-instrumentation-mcp?style=for-the-badge"/>
+</a>
+<a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/releases">
+<img alt="GitHub release" src="https://img.shields.io/github/v/release/liatrio-labs/otel-instrumentation-mcp?include_prereleases&style=for-the-badge">
+</a>
+<a href="https://api.securityscorecards.dev/projects/github.com/liatrio-labs/otel-instrumentation-mcp/badge">
+<img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/liatrio-labs/otel-instrumentation-mcp?label=openssf%20scorecard&style=for-the-badge">
+</a>
 </p>
-
 ---
 
 # OpenTelemetry MCP Server
@@ -43,7 +41,7 @@ OpenTelemetry tasks:
 
 - **Repository & Issue Access** - Browse OpenTelemetry repositories and search
   issues
-- **Examples & Documentation** - Language-specific examples and documentation  
+- **Examples & Documentation** - Language-specific examples and documentation
 - **Semantic Conventions** - Access to standardized attribute definitions
 - **Instrumentation Scoring** - Evaluate telemetry quality based on best
   practices
@@ -80,9 +78,9 @@ Currently supported authentication methods:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/liatrio/otel-instrumentation-mcp.git
+git clone https://github.com/liatrio-labs/otel-instrumentation-mcp.git
 cd otel-instrumentation-mcp
-   ```
+```
 
 2. Install dependencies:
 
@@ -99,6 +97,7 @@ export GITHUB_TOKEN="github_pat_..."
 ```
 
 **Option B: GitHub App (recommended for production)**
+
 ```bash
 export GITHUB_APP_ID="123456"
 export GITHUB_INSTALLATION_ID="654321"
@@ -234,8 +233,9 @@ practices]
 ### Kubernetes
 
 The repository includes Kubernetes manifests with:
+
 - Deployment with health checks and resource limits
-- Service for internal communication  
+- Service for internal communication
 - OpenTelemetry Collector integration
 - ConfigMaps for feature flags
 - Support for different environments via the Kustomize overlay pattern (dev,
@@ -250,27 +250,29 @@ kubectl apply -k manifests/overlays/prod
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SERVICE_NAME` | Service name for telemetry | `otel-instrumentation-mcp-server` |
-| `SERVICE_VERSION` | Service version | `0.15.0` |
-| `SERVICE_INSTANCE_ID` | Instance identifier | `local` |
-| `SERVICE_PORT` | Port for HTTP transport (overrides MCP_PORT) | - |
-| `MCP_TRANSPORT` | Transport type (`stdio`, `http`, `sse`) | `stdio` |
-| `MCP_HOST` | Host binding for HTTP/SSE | Auto-detected |
-| `MCP_PORT` | Port for HTTP/SSE transport | `8080` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | `http://localhost:4317` |
+| Variable                      | Description                                  | Default                           |
+| ----------------------------- | -------------------------------------------- | --------------------------------- |
+| `SERVICE_NAME`                | Service name for telemetry                   | `otel-instrumentation-mcp-server` |
+| `SERVICE_VERSION`             | Service version                              | `0.15.0`                          |
+| `SERVICE_INSTANCE_ID`         | Instance identifier                          | `local`                           |
+| `SERVICE_PORT`                | Port for HTTP transport (overrides MCP_PORT) | -                                 |
+| `MCP_TRANSPORT`               | Transport type (`stdio`, `http`, `sse`)      | `stdio`                           |
+| `MCP_HOST`                    | Host binding for HTTP/SSE                    | Auto-detected                     |
+| `MCP_PORT`                    | Port for HTTP/SSE transport                  | `8080`                            |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint                      | `http://localhost:4317`           |
 
 ### GitHub Authentication
 
 Choose one authentication method:
 
 **GitHub App (Recommended):**
+
 - `GITHUB_APP_ID` - GitHub App ID
 - `GITHUB_INSTALLATION_ID` - Installation ID
 - `GITHUB_APP_PRIVATE_KEY_PATH` - Path to private key
 
 **Personal Access Token:**
+
 - `GITHUB_TOKEN` - GitHub personal access token
 
 ## Development
