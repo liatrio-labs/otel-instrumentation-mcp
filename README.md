@@ -1,4 +1,4 @@
----
+﻿---
 <p align="center">
 <a href="https://github.com/liatrio-labs/otel-instrumentation-mcp/actions/workflows/build.yml?query=branch%3Amain">
 <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/liatrio-labs/otel-instrumentation-mcp/build.yml?branch=main&style=for-the-badge">
