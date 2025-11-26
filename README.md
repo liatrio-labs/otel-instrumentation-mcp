@@ -162,6 +162,49 @@ Add to your Claude Desktop configuration:
 }
 ```
 
+#### VS Code
+
+VS Code supports MCP servers through the GitHub Copilot extension (requires Copilot
+Chat). Add to your workspace's `.vscode/mcp.json` file:
+
+```json
+{
+  "servers": {
+    "otel-instrumentation-mcp": {
+      "command": "uv",
+      "args": ["run", "otel-instrumentation-mcp"],
+      "cwd": "/path/to/otel-instrumentation-mcp",
+      "env": {
+        "GITHUB_TOKEN": "your_github_token"
+      }
+    }
+  }
+}
+```
+
+Alternatively, add to your VS Code `settings.json` for global configuration:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "otel-instrumentation-mcp": {
+        "command": "uv",
+        "args": ["run", "otel-instrumentation-mcp"],
+        "cwd": "/path/to/otel-instrumentation-mcp",
+        "env": {
+          "GITHUB_TOKEN": "your_github_token"
+        }
+      }
+    }
+  }
+}
+```
+
+> **Note**: Ensure `uv` is in your PATH or use the full path to the `uv` executable.
+> After adding the configuration, reload VS Code and the MCP server should appear
+> in Copilot Chat's available tools.
+
 #### Windsurf or Cursor
 
 Add to your MCP configuration file:
