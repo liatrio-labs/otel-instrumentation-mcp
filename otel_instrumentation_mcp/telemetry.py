@@ -26,6 +26,7 @@ from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -33,6 +34,44 @@ from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.semconv.attributes.error_attributes import ERROR_TYPE
 from opentelemetry.trace import Status, StatusCode
+
+
+class ClientIPSpanProcessor(SpanProcessor):
+    """Custom span processor that automatically adds client IP attributes to all spans for GeoIP processing."""
+    
+    def on_start(self, span, parent_context=None):
+        """Called when a span is started. Add client IP attributes if available."""
+        try:
+            # Try to get client IP from the current request context
+            import contextvars
+            
+            # Try to get the current request from context
+            try:
+                request_context = contextvars.ContextVar("current_request", default=None)
+                request = request_context.get()
+                if request and hasattr(request, 'state') and hasattr(request.state, 'client_ip'):
+                    client_ip = request.state.client_ip
+                    if client_ip and span.is_recording():
+                        span.set_attribute("source.address", client_ip)
+                        span.set_attribute("http.client_ip", client_ip)
+            except (LookupError, AttributeError):
+                # Context variable not set or request doesn't have client_ip
+                pass
+        except Exception:
+            # Silently ignore errors to avoid breaking span creation
+            pass
+    
+    def on_end(self, span):
+        """Called when a span is ended. Nothing to do here."""
+        pass
+    
+    def shutdown(self):
+        """Called when the processor is shut down. Nothing to do here."""
+        pass
+    
+    def force_flush(self, timeout_millis=30000):
+        """Called to force flush the processor. Nothing to do here."""
+        pass
 
 
 class TelemetryConfig:
@@ -102,6 +141,10 @@ class TelemetryConfig:
         # Add batch span processor
         span_processor = BatchSpanProcessor(span_exporter)
         tracer_provider.add_span_processor(span_processor)
+        
+        # Add custom client IP span processor for GeoIP enrichment
+        client_ip_processor = ClientIPSpanProcessor()
+        tracer_provider.add_span_processor(client_ip_processor)
 
         # Set global tracer provider
         trace.set_tracer_provider(tracer_provider)
@@ -212,8 +255,21 @@ def set_span_error(span: trace.Span, error: Exception) -> None:
     span.record_exception(error)
 
 
+def ensure_client_ip_attributes(span: trace.Span) -> None:
+    """Ensure a span has client IP attributes for GeoIP processing if available."""
+    client_ip = extract_client_ip_from_request()
+    if client_ip:
+        span.set_attribute("source.address", client_ip)
+        span.set_attribute("http.client_ip", client_ip)
+
+
 def add_span_attributes(span: trace.Span, **attributes) -> None:
-    """Add multiple attributes to a span safely."""
+    """Add multiple attributes to a span safely, including automatic client IP for GeoIP processing."""
+    
+    # First, ensure client IP attributes are present for GeoIP processing
+    ensure_client_ip_attributes(span)
+    
+    # Add the provided attributes
     for key, value in attributes.items():
         if value is not None:
             # Convert to string if not already
@@ -227,6 +283,7 @@ def create_root_span_context(
     operation_name: str,
     operation_type: str = "mcp",
     session_id: Optional[str] = None,
+    client_ip: Optional[str] = None,
 ):
     """Create a true root span context manager for MCP operations.
 
@@ -239,6 +296,7 @@ def create_root_span_context(
         operation_name: Name of the operation (e.g., 'mcp.tool.list_repos')
         operation_type: Type of operation ('mcp', 'tool', 'prompt')
         session_id: Optional session identifier for SSE connections
+        client_ip: Optional client IP address for GeoIP processing
 
     Returns:
         Context manager that yields a root span with proper context
@@ -251,6 +309,11 @@ def create_root_span_context(
         "operation.type": operation_type,
         "mcp.operation": operation_name,
     }
+    
+    # Add client IP for GeoIP processing if available
+    if client_ip:
+        attributes["source.address"] = client_ip
+        attributes["http.client_ip"] = client_ip
 
     # Add tool or prompt specific attributes
     if operation_type == "tool":
@@ -530,6 +593,9 @@ def add_mcp_operation_context(
     import time
     import uuid
 
+    # Ensure client IP attributes are present for GeoIP processing
+    ensure_client_ip_attributes(span)
+
     # Generate unique operation ID for tracing
     operation_id = str(uuid.uuid4())
 
@@ -625,6 +691,11 @@ def create_span_event(event_name: str, operation_type: str, **event_data) -> dic
     session_id = extract_session_id_from_request()
     if session_id:
         event["session_id"] = session_id
+
+    # Add client IP context if available
+    client_ip = extract_client_ip_from_request()
+    if client_ip:
+        event["client_ip"] = client_ip
 
     return event
 
@@ -722,37 +793,33 @@ class VCSAttributes:
 
 
 def extract_session_id_from_request() -> Optional[str]:
-    """Extract session ID from current HTTP request context.
+    """Extract session ID from the current request context.
 
-    This function attempts to extract the MCP session ID from:
-    1. HTTP headers (mcp-session-id, x-session-id)
-    2. Query parameters (session_id)
-    3. Environment variables (for stdio transport)
+    This function attempts to extract the session ID from various sources
+    in the current request context, including headers and query parameters.
 
     Returns:
-        Optional session ID string, or None if not found
+        Session ID if found, None otherwise
     """
     try:
-        # For SSE transport, try to get session from FastMCP context
-        from fastmcp.server.http import _current_http_request
+        # Try to get from context variables or request state
+        # This is a placeholder - actual implementation depends on how
+        # the session ID is passed through the request pipeline
+        import contextvars
 
-        request = _current_http_request.get(None)
-        if request is not None:
-            # Check for session ID in headers (multiple possible header names)
-            for header_name in ["mcp-session-id", "x-session-id", "session-id"]:
-                session_id = request.headers.get(header_name)
-                if session_id:
-                    return session_id
+        # Check if we have a context variable for session ID
+        session_context = contextvars.ContextVar("mcp_session_id", default=None)
+        session_id = session_context.get()
 
-            # Check query parameters as fallback
-            session_id = request.query_params.get("session_id")
-            if session_id:
-                return session_id
+        if session_id:
+            return session_id
 
-        # For stdio transport, generate a consistent session ID
+        # Additional extraction logic could be added here
+        # depending on the specific transport implementation
+        
+        # For stdio transport, use process ID as session identifier
         transport = os.getenv("MCP_TRANSPORT", "stdio")
         if transport == "stdio":
-            # Use process ID as session identifier for stdio
             return f"stdio-{os.getpid()}"
 
         return None
@@ -762,4 +829,30 @@ def extract_session_id_from_request() -> Optional[str]:
         transport = os.getenv("MCP_TRANSPORT", "stdio")
         if transport == "stdio":
             return f"stdio-{os.getpid()}"
+        return None
+
+
+def extract_client_ip_from_request() -> Optional[str]:
+    """Extract client IP from the current request context.
+
+    This function attempts to extract the client IP from the current request
+    context, which should have been set by the middleware.
+
+    Returns:
+        Client IP if found, None otherwise
+    """
+    try:
+        import contextvars
+        from starlette.requests import Request
+
+        # Try to get from context variables
+        request_context = contextvars.ContextVar("current_request", default=None)
+        request = request_context.get()
+
+        if request and hasattr(request, "state") and hasattr(request.state, "client_ip"):
+            return request.state.client_ip
+
+        return None
+    except Exception:
+        # If context extraction fails, return None
         return None

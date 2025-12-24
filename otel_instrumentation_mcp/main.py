@@ -22,7 +22,7 @@ import signal
 import sys
 import uvicorn
 from fastmcp import FastMCP
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette.routing import Mount, Route
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.semconv.trace import SpanAttributes
@@ -36,6 +36,7 @@ from otel_instrumentation_mcp.telemetry import (
     add_span_attributes,
     create_root_span_context,
     extract_session_id_from_request,
+    extract_client_ip_from_request,
     add_enhanced_error_attributes,
     add_mcp_operation_context,
     add_operation_metrics,
@@ -75,6 +76,7 @@ from otel_instrumentation_mcp.network_utils import (
     validate_host_binding,
 )
 from otel_instrumentation_mcp.cache import cache_manager
+from otel_instrumentation_mcp.mcp_instrumentation_middleware import MCPInstrumentationMiddleware
 from fastmcp.prompts.prompt import Message, PromptMessage, TextContent
 
 # Initialize OpenTelemetry
@@ -101,8 +103,11 @@ with tracer.start_as_current_span("mcp.server.initialize") as span:
         lifespan=mcp_http_app.lifespan,
     )
 
-    # No middleware needed - all instrumentation is handled manually in MCP tools
-    # This eliminates noise from HTTP transport layers and SSE internal requests
+    # Add MCP instrumentation middleware for client IP capture and GeoIP processing
+    app.add_middleware(MCPInstrumentationMiddleware)
+    
+    # Also enable FastAPI auto-instrumentation for HTTP spans
+    FastAPIInstrumentor.instrument_app(app)
 
     logger.info("MCP server initialized successfully")
 
@@ -125,8 +130,9 @@ async def ask_about_code(code_snippet: str) -> PromptMessage:
 
     # Create true root span for this MCP prompt operation with session tracking
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.prompt.ask_about_code", "prompt", session_id
+        tracer, "mcp.prompt.ask_about_code", "prompt", session_id, client_ip
     ) as span:
         try:
             # Add comprehensive MCP operation context
@@ -316,8 +322,9 @@ async def autoinstrumentation_prompt(code_snippet: str) -> PromptMessage:
     import time
 
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.prompt.autoinstrumentation", "prompt", session_id
+        tracer, "mcp.prompt.autoinstrumentation", "prompt", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -425,8 +432,9 @@ async def custom_instrumentation_prompt(code_snippet: str) -> PromptMessage:
     import time
 
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.prompt.custom_instrumentation", "prompt", session_id
+        tracer, "mcp.prompt.custom_instrumentation", "prompt", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -541,8 +549,9 @@ async def instrumentation_score_analysis_prompt(
     import time
 
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.prompt.instrumentation_score_analysis", "prompt", session_id
+        tracer, "mcp.prompt.instrumentation_score_analysis", "prompt", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -636,8 +645,9 @@ async def instrumentation_score_rules_prompt(
     import time
 
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.prompt.instrumentation_score_rules", "prompt", session_id
+        tracer, "mcp.prompt.instrumentation_score_rules", "prompt", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -723,8 +733,9 @@ async def list_opentelemetry_repos():
 
     # Create true root span for this MCP tool operation with session tracking
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.list_opentelemetry_repos", "tool", session_id
+        tracer, "mcp.tool.list_opentelemetry_repos", "tool", session_id, client_ip
     ) as span:
         try:
             # Add comprehensive MCP operation context
@@ -882,8 +893,9 @@ async def list_opentelemetry_issues(repo: str = "opentelemetry-python"):
         repo: Repository name (e.g. opentelemetry-python)
     """
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.list_opentelemetry_issues", "tool", session_id
+        tracer, "mcp.tool.list_opentelemetry_issues", "tool", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -944,8 +956,9 @@ async def search_opentelemetry_issues(
     start_time = time.time()
 
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.search_opentelemetry_issues", "tool", session_id
+        tracer, "mcp.tool.search_opentelemetry_issues", "tool", session_id, client_ip
     ) as span:
         try:
             # Add comprehensive MCP operation context
@@ -1112,8 +1125,9 @@ async def get_opentelemetry_examples():
     Returns a list of OpenTelemetry demo services and examples
     """
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.get_opentelemetry_examples", "tool", session_id
+        tracer, "mcp.tool.get_opentelemetry_examples", "tool", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -1169,8 +1183,9 @@ async def get_opentelemetry_examples_by_language(language: str = "python"):
         language: Programming language (e.g. python, java, go)
     """
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.get_opentelemetry_examples_by_language", "tool", session_id
+        tracer, "mcp.tool.get_opentelemetry_examples_by_language", "tool", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -1238,8 +1253,9 @@ async def get_opentelemetry_docs_by_language(
         version: Version to retrieve (e.g. "v1.2.3", "latest", or None for latest)
     """
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.get_opentelemetry_docs_by_language", "tool", session_id
+        tracer, "mcp.tool.get_opentelemetry_docs_by_language", "tool", session_id, client_ip
     ) as span:
         try:
             add_span_attributes(
@@ -1309,8 +1325,9 @@ async def get_semantic_conventions(category: str = None, count: int = 50):
 
     # Create true root span for this MCP tool operation with session tracking
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.get_semantic_conventions", "tool", session_id
+        tracer, "mcp.tool.get_semantic_conventions", "tool", session_id, client_ip
     ) as span:
         try:
             # Add comprehensive MCP operation context
@@ -1486,8 +1503,9 @@ async def get_instrumentation_score_spec():
 
     # Create true root span for this MCP tool operation with session tracking
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.get_instrumentation_score_spec", "tool", session_id
+        tracer, "mcp.tool.get_instrumentation_score_spec", "tool", session_id, client_ip
     ) as span:
         try:
             # Add comprehensive MCP operation context
@@ -1654,8 +1672,9 @@ async def get_instrumentation_score_rules(
 
     # Create true root span for this MCP tool operation with session tracking
     session_id = extract_session_id_from_request()
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "mcp.tool.get_instrumentation_score_rules", "tool", session_id
+        tracer, "mcp.tool.get_instrumentation_score_rules", "tool", session_id, client_ip
     ) as span:
         try:
             # Add comprehensive MCP operation context
@@ -1824,9 +1843,47 @@ async def get_instrumentation_score_rules(
             raise
 
 
+# Add test endpoint for GeoIP testing
+@app.get("/test-geoip")
+async def test_geoip(request: Request):
+    """Test endpoint to verify GeoIP processor functionality."""
+    from otel_instrumentation_mcp.telemetry import get_tracer
+    
+    tracer = get_tracer()
+    
+    # Extract client IP from headers
+    client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    if not client_ip:
+        client_ip = request.headers.get("X-Real-IP", "")
+    if not client_ip and hasattr(request, "client") and request.client:
+        client_ip = request.client.host
+    
+    # Create a test span with source.address for GeoIP processing
+    with tracer.start_as_current_span(
+        "test.geoip.request",
+        attributes={
+            "source.address": client_ip,
+            "http.client_ip": client_ip,
+            "http.method": "GET",
+            "http.url": str(request.url),
+            "test.purpose": "geoip_verification"
+        }
+    ) as span:
+        span.add_event("geoip_test_request", {
+            "client_ip": client_ip,
+            "headers": dict(request.headers)
+        })
+        
+        return {
+            "message": "GeoIP test request",
+            "client_ip": client_ip,
+            "trace_id": format(span.get_span_context().trace_id, "032x"),
+            "span_id": format(span.get_span_context().span_id, "016x")
+        }
+
 # Add health check endpoint for Kubernetes
 @app.get("/health")
-async def health_check():
+async def health_check(request: Request):
     """Health check endpoint for Kubernetes probes.
 
     Returns comprehensive health status including:
@@ -1836,15 +1893,39 @@ async def health_check():
     - Cache status
     """
     try:
-        # Basic health check - if we can respond, the service is running
-        health_status = {
-            "status": "healthy",
-            "service": "otel-instrumentation-mcp-server",
-            "timestamp": asyncio.get_event_loop().time(),
-            "transport": os.getenv("MCP_TRANSPORT", "stdio"),
-            "port": os.getenv("SERVICE_PORT") or os.getenv("MCP_PORT", "8080"),
-            "mcp_available": True,
-        }
+        # Extract client IP for GeoIP testing
+        client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        if not client_ip:
+            client_ip = request.headers.get("X-Real-IP", "")
+        if not client_ip and hasattr(request, "client") and request.client:
+            client_ip = request.client.host
+        
+        # Create a span with source.address for GeoIP processing
+        with tracer.start_as_current_span(
+            "health.check.request",
+            attributes={
+                "source.address": client_ip,
+                "http.client_ip": client_ip,
+                "http.method": "GET",
+                "http.url": str(request.url),
+                "health.check": True
+            }
+        ) as span:
+            span.add_event("health_check_with_geoip", {
+                "client_ip": client_ip
+            })
+            
+            # Basic health check - if we can respond, the service is running
+            health_status = {
+                "status": "healthy",
+                "service": "otel-instrumentation-mcp-server",
+                "timestamp": asyncio.get_event_loop().time(),
+                "transport": os.getenv("MCP_TRANSPORT", "stdio"),
+                "port": os.getenv("MCP_PORT", "8080"),
+                "mcp_available": True,
+                "client_ip": client_ip,
+                "trace_id": format(span.get_span_context().trace_id, "032x")
+            }
 
         # Add cache health status
         try:
