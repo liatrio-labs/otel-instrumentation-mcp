@@ -28,6 +28,7 @@ from opentelemetry import trace
 from otel_instrumentation_mcp.telemetry import (
     get_tracer,
     create_root_span_context,
+    extract_client_ip_from_request,
     add_enhanced_error_attributes,
     MCPAttributes,
 )
@@ -69,8 +70,9 @@ async def _fetch_instrumentation_score_specification_uncached() -> str:
     """
     tracer = get_tracer()
 
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "fetch_instrumentation_score_specification", "tool"
+        tracer, "fetch_instrumentation_score_specification", "tool", None, client_ip
     ) as span:
         try:
             url = f"{INSTRUMENTATION_SCORE_REPO_BASE}/specification.md"
@@ -150,8 +152,9 @@ async def _fetch_instrumentation_score_rules_uncached(
     """
     tracer = get_tracer()
 
+    client_ip = extract_client_ip_from_request()
     with create_root_span_context(
-        tracer, "fetch_instrumentation_score_rules", "tool"
+        tracer, "fetch_instrumentation_score_rules", "tool", None, client_ip
     ) as span:
         try:
             # First, get the list of rule files
