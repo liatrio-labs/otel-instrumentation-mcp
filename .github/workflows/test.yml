@@ -15,15 +15,15 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       
       - name: Install uv
-        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
-          version: "0.8.0" # https://github.com/go-task/task
+          version: "0.12.10" # https://github.com/go-task/task
       
       - name: Install Task
-        uses: alexellis/arkade-get@master
+        uses: alexellis/arkade-get@5594ddff52ec7b8a71efd73acaa9e52936e35e16 # master
         with:
           task: v3.44.0 # https://github.com/go-task/task
 
