@@ -1227,7 +1227,7 @@ async def get_opentelemetry_examples_by_language_http(language: str = "python"):
 
 @mcp.tool
 async def get_opentelemetry_docs_by_language(
-    language: str = "python", version: str = None
+    language: str = "python", version: str | None = None
 ):
     """Get OpenTelemetry documentation by language and version
 
@@ -1293,7 +1293,7 @@ async def get_opentelemetry_docs_by_language(
 
 
 @mcp.tool
-async def get_semantic_conventions(category: str = None, count: int = 50):
+async def get_semantic_conventions(category: str | None = None, count: int = 50):
     """Get OpenTelemetry semantic conventions from the semantic-conventions repository
 
     Returns semantic conventions from the OpenTelemetry semantic-conventions repository
@@ -1631,7 +1631,9 @@ async def get_instrumentation_score_spec():
 
 @mcp.tool
 async def get_instrumentation_score_rules(
-    rule_ids: str = None, impact_levels: str = None, targets: str = None
+    rule_ids: str | None = None,
+    impact_levels: str | None = None,
+    targets: str | None = None,
 ):
     """Get Instrumentation Score rules
 
