@@ -1459,7 +1459,7 @@ async def get_semantic_conventions(category: str | None = None, count: int = 50)
 
 @app.get("/otel-docs")
 async def get_opentelemetry_docs_by_language_http(
-    language: str = "python", version: str = None
+    language: str = "python", version: str | None = None
 ):
     """HTTP endpoint for getting OpenTelemetry documentation by language and version"""
     result = await get_opentelemetry_docs_by_language(language, version)
@@ -1467,7 +1467,7 @@ async def get_opentelemetry_docs_by_language_http(
 
 
 @app.get("/semantic-conventions")
-async def get_semantic_conventions_http(category: str = None, count: int = 50):
+async def get_semantic_conventions_http(category: str | None = None, count: int = 50):
     """HTTP endpoint for getting OpenTelemetry semantic conventions"""
     result = await fetch_semantic_conventions(category, count)
     return result
