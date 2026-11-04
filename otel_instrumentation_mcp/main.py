@@ -1227,7 +1227,7 @@ async def get_opentelemetry_examples_by_language_http(language: str = "python"):
 
 @mcp.tool
 async def get_opentelemetry_docs_by_language(
-    language: str = "python", version: str = None
+    language: str = "python", version: str | None = None
 ):
     """Get OpenTelemetry documentation by language and version
 
@@ -1293,7 +1293,7 @@ async def get_opentelemetry_docs_by_language(
 
 
 @mcp.tool
-async def get_semantic_conventions(category: str = None, count: int = 50):
+async def get_semantic_conventions(category: str | None = None, count: int = 50):
     """Get OpenTelemetry semantic conventions from the semantic-conventions repository
 
     Returns semantic conventions from the OpenTelemetry semantic-conventions repository
@@ -1459,7 +1459,7 @@ async def get_semantic_conventions(category: str = None, count: int = 50):
 
 @app.get("/otel-docs")
 async def get_opentelemetry_docs_by_language_http(
-    language: str = "python", version: str = None
+    language: str = "python", version: str | None = None
 ):
     """HTTP endpoint for getting OpenTelemetry documentation by language and version"""
     result = await get_opentelemetry_docs_by_language(language, version)
@@ -1467,7 +1467,7 @@ async def get_opentelemetry_docs_by_language_http(
 
 
 @app.get("/semantic-conventions")
-async def get_semantic_conventions_http(category: str = None, count: int = 50):
+async def get_semantic_conventions_http(category: str | None = None, count: int = 50):
     """HTTP endpoint for getting OpenTelemetry semantic conventions"""
     result = await fetch_semantic_conventions(category, count)
     return result
@@ -1629,9 +1629,17 @@ async def get_instrumentation_score_spec():
             raise
 
 
+def _split_csv(value: str | None) -> list[str] | None:
+    """Split a comma-separated filter, ignoring whitespace and empty entries."""
+    items = [item.strip() for item in (value or "").split(",") if item.strip()]
+    return items or None
+
+
 @mcp.tool
 async def get_instrumentation_score_rules(
-    rule_ids: str = None, impact_levels: str = None, targets: str = None
+    rule_ids: str | None = None,
+    impact_levels: str | None = None,
+    targets: str | None = None,
 ):
     """Get Instrumentation Score rules
 
@@ -1648,9 +1656,9 @@ async def get_instrumentation_score_rules(
     start_time = time.time()
 
     # Parse comma-separated parameters
-    rule_ids_list = rule_ids.split(",") if rule_ids else None
-    impact_levels_list = impact_levels.split(",") if impact_levels else None
-    targets_list = targets.split(",") if targets else None
+    rule_ids_list = _split_csv(rule_ids)
+    impact_levels_list = _split_csv(impact_levels)
+    targets_list = _split_csv(targets)
 
     # Create true root span for this MCP tool operation with session tracking
     session_id = extract_session_id_from_request()

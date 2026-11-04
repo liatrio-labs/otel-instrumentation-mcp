@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, patch
 
 from otel_instrumentation_mcp.cache import (
     InMemoryCache,
+    NullCache,
     RedisCache,
     CacheManager,
     create_cache_manager,
@@ -271,8 +272,28 @@ class TestCacheManagerCreation:
         """Test creating cache manager with caching disabled."""
         with patch.dict(os.environ, {"CACHE_ENABLED": "false"}):
             manager = create_cache_manager()
-            assert isinstance(manager.backend, InMemoryCache)
-            assert manager.backend.default_ttl == 60  # Short TTL when disabled
+            assert isinstance(manager.backend, NullCache)
+
+    @pytest.mark.asyncio
+    async def test_disabled_cache_never_serves_cached_data(self):
+        """An explicit TTL must not re-enable caching when disabled (#24)."""
+        with patch.dict(os.environ, {"CACHE_ENABLED": "false"}):
+            manager = create_cache_manager()
+        fetch_func = AsyncMock(return_value="fetched_value")
+
+        for _ in range(2):
+            result = await manager.get_or_set(
+                operation="test_op", fetch_func=fetch_func, ttl=6 * 60 * 60
+            )
+            assert result == "fetched_value"
+
+        assert fetch_func.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_disabled_cache_health_check(self):
+        """The disabled backend reports itself as healthy and empty."""
+        health = await NullCache().health_check()
+        assert health == {"status": "healthy", "backend": "disabled", "entries": 0}
 
     def test_create_cache_manager_memory(self):
         """Test creating cache manager with in-memory backend."""
