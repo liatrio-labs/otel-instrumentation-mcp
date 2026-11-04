@@ -15,33 +15,56 @@
 import inspect
 
 import pytest
-from fastmcp import Client
 from pydantic import TypeAdapter
 
 from otel_instrumentation_mcp.main import mcp
 
 
-@pytest.mark.asyncio
-async def test_null_default_parameters_accept_null():
-    """Every tool parameter that advertises "default": null must accept null.
+def schema_accepts_null(prop: dict) -> bool:
+    """Whether a JSON schema property allows null.
 
+    Handles both `"type": "null"` / `"type": ["string", "null"]` and
+    `anyOf` / `oneOf` members.
+    """
+    types = prop.get("type")
+    if types == "null" or (isinstance(types, list) and "null" in types):
+        return True
+    members = prop.get("anyOf", []) + prop.get("oneOf", [])
+    return any(schema_accepts_null(member) for member in members)
+
+
+@pytest.mark.parametrize(
+    "prop, expected",
+    [
+        ({"anyOf": [{"type": "string"}, {"type": "null"}]}, True),
+        ({"type": ["string", "null"]}, True),
+        ({"oneOf": [{"type": "integer"}, {"type": "null"}]}, True),
+        ({"type": "string"}, False),
+        ({"anyOf": [{"type": "string"}, {"type": "integer"}]}, False),
+    ],
+)
+def test_schema_accepts_null(prop, expected):
+    assert schema_accepts_null(prop) is expected
+
+
+@pytest.mark.asyncio
+async def test_none_default_parameters_accept_null():
+    """Every tool parameter that defaults to None must accept null.
+
+    Driven by the Python signatures rather than the generated schema, so a
+    parameter is checked even if its schema omits `"default": null`.
     Only the schemas and argument types are checked; no tool is called.
     """
-    async with Client(mcp) as client:
-        tools = await client.list_tools()
-
-    registered = await mcp.get_tools()
     checked = []
-    for tool in tools:
-        params = inspect.signature(registered[tool.name].fn).parameters
-        for name, prop in tool.inputSchema.get("properties", {}).items():
-            if "default" not in prop or prop["default"] is not None:
+    for name, tool in (await mcp.get_tools()).items():
+        properties = tool.parameters.get("properties", {})
+        for param in inspect.signature(tool.fn).parameters.values():
+            if param.default is not None:
                 continue
-            checked.append(f"{tool.name}.{name}")
-            types = [prop.get("type")] + [o.get("type") for o in prop.get("anyOf", [])]
-            assert (
-                "null" in types
-            ), f"{tool.name}.{name} defaults to null but rejects it"
-            TypeAdapter(params[name].annotation).validate_python(None)
+            checked.append(f"{name}.{param.name}")
+            assert schema_accepts_null(
+                properties[param.name]
+            ), f"{name}.{param.name} defaults to None but its schema rejects null"
+            TypeAdapter(param.annotation).validate_python(None)
 
-    assert checked, "expected at least one parameter with a null default"
+    assert checked, "expected at least one parameter with a None default"
