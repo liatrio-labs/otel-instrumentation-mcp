@@ -75,6 +75,29 @@ class CacheBackend(ABC):
         pass
 
 
+class NullCache(CacheBackend):
+    """Backend used when caching is disabled: stores nothing, always misses."""
+
+    async def get(self, key: str) -> Optional[Any]:
+        return None
+
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        # Report success so CacheManager doesn't log a warning on every call.
+        return True
+
+    async def delete(self, key: str) -> bool:
+        return False
+
+    async def clear(self) -> bool:
+        return True
+
+    async def exists(self, key: str) -> bool:
+        return False
+
+    async def health_check(self) -> Dict[str, Any]:
+        return {"status": "healthy", "backend": "disabled", "entries": 0}
+
+
 class InMemoryCache(CacheBackend):
     """Simple in-memory cache implementation."""
 
@@ -540,9 +563,8 @@ def create_cache_manager() -> CacheManager:
     cache_backend = os.getenv("CACHE_BACKEND", "memory").lower()
 
     if not cache_enabled:
-        logger.info("Caching is disabled, using in-memory cache with short TTL")
-        backend = InMemoryCache(default_ttl=60)  # Very short TTL when disabled
-        return CacheManager(backend)
+        logger.info("Caching is disabled")
+        return CacheManager(NullCache())
 
     if cache_backend == "redis":
         try:
