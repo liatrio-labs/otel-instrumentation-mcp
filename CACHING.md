@@ -201,7 +201,7 @@ curl http://localhost:8080/health
 curl http://localhost:8080/cache/status
 ```
 
-Example response:
+Example response with Redis caching enabled:
 ```json
 {
   "cache": {
@@ -215,6 +215,15 @@ Example response:
   },
   "cache_enabled": true,
   "cache_backend": "redis"
+}
+```
+
+With caching disabled (`CACHE_ENABLED=false`), the cache reports itself as `disabled` and holds nothing:
+```json
+{
+  "status": "healthy",
+  "backend": "disabled",
+  "entries": 0
 }
 ```
 
@@ -354,6 +363,12 @@ kubectl rollout restart deployment/otel-instrumentation-mcp
 kubectl delete deployment redis-cache
 kubectl delete service redis-cache
 ```
+
+### Upgrading from v0.5.0
+
+In v0.5.0, `CACHE_ENABLED=false` (the default) did not actually disable caching: results were still kept in memory for 1 to 24 hours. Caching is now fully off when disabled, so every tool call goes to the upstream source.
+
+If you ran with the default and relied on that caching, set `CACHE_ENABLED=true` when upgrading. Otherwise you may hit GitHub's rate limits sooner: the Instrumentation Score tools call the GitHub API without a token, which allows 60 requests per hour per IP address.
 
 ## Future Enhancements
 
