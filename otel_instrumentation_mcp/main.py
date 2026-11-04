@@ -1629,6 +1629,12 @@ async def get_instrumentation_score_spec():
             raise
 
 
+def _split_csv(value: str | None) -> list[str] | None:
+    """Split a comma-separated filter, ignoring whitespace and empty entries."""
+    items = [item.strip() for item in (value or "").split(",") if item.strip()]
+    return items or None
+
+
 @mcp.tool
 async def get_instrumentation_score_rules(
     rule_ids: str | None = None,
@@ -1650,9 +1656,9 @@ async def get_instrumentation_score_rules(
     start_time = time.time()
 
     # Parse comma-separated parameters
-    rule_ids_list = rule_ids.split(",") if rule_ids else None
-    impact_levels_list = impact_levels.split(",") if impact_levels else None
-    targets_list = targets.split(",") if targets else None
+    rule_ids_list = _split_csv(rule_ids)
+    impact_levels_list = _split_csv(impact_levels)
+    targets_list = _split_csv(targets)
 
     # Create true root span for this MCP tool operation with session tracking
     session_id = extract_session_id_from_request()
