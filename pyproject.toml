@@ -33,6 +33,7 @@ dev = [
     "httpx>=0.28.1",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
+    "ruff>=0.17.3",
 ]
 
 [project.scripts]
@@ -45,3 +46,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["otel_instrumentation_mcp*"]
+
+[tool.ruff.lint]
+# Explicit Optional: `x: str = None` makes MCP tools reject null (#22, #26).
+select = ["RUF013"]

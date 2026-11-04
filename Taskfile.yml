@@ -40,10 +40,11 @@ tasks:
       - uv run pytest {{.CLI_ARGS}}
 
   lint:
-    desc: Run Python Black formatter directly through uv
+    desc: Run the Black formatter and the ruff linter through uv
     deps:
     cmds:
       - uv run black otel_instrumentation_mcp/ tests/
+      - uv run ruff check otel_instrumentation_mcp/ tests/
     sources:
       - otel_instrumentation_mcp/**/*.py
       - tests/**/*.py
